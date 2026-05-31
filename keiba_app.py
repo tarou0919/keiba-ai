@@ -69,9 +69,15 @@ TRAINER_WIN_RATES = {
 }
 TRACK_COND_MAP = {"良":0, "稍重":1, "重":2, "不良":3}
 FEATURE_COLS = [
-    "distance_num","course_num","track_cond_num","age",
-    "weight_carried","horse_weight","weight_change",
-    "odds","favorite_num","jockey_win_rate","trainer_win_rate","horse_avg_rank_last5",
+    "distance_num","course_num","track_cond_num","venue_num",
+    "age","sex_num","weight_carried","horse_weight_kg","weight_change",
+    "odds_num","favorite_num","log_odds",
+    "jockey_win_rate","jockey_place_rate","trainer_win_rate",
+    "horse_avg_rank_last3","horse_avg_rank_last5","horse_best_rank",
+    "horse_win_count","horse_race_count","horse_win_rate",
+    "same_course_win_rate","same_dist_win_rate",
+    "days_since_last_race","race_interval_score",
+    "speed_index","speed_index_avg3",
 ]
 SAMPLE_DATA = pd.DataFrame({
     "horse_name":     ["ドウデュース","プログノーシス","ローシャムパーク","ソールオリエンス","ジャックドール","ベラジオオペラ","リカンカブール","ヒシイグアス"],
@@ -137,28 +143,16 @@ def build_features(df, distance, course, track_condition):
     df.columns = [c.strip().lower().replace(" ", "_") for c in df.columns]
 
     # 日本語列名 → 英語列名に自動変換
-    JP_COL_MAP = {
-        '馬名':        'horse_name',
-        '馬_名':       'horse_name',
-        '騎手':        'jockey',
-        '騎手名':      'jockey',
-        '単勝':        'odds',
-        '単勝オッズ':  'odds',
-        'オッズ':      'odds',
-        '年齢':        'age',
-        '馬齢':        'age',
-        '齢':          'age',
-        '斤量':        'weight_carried',
-        '馬体重':      'horse_weight',
-        '体重':        'horse_weight',
-        '増減':        'weight_change',
-        '体重増減':    'weight_change',
-        '調教師':      'trainer',
-        '調教師名':    'trainer',
-        '着順':        'rank',
-        '人気':        'favorite',
+    JP_MAP = {
+        '馬名':'horse_name','騎手':'jockey','騎手名':'jockey',
+        '単勝':'odds_num','単勝オッズ':'odds_num','オッズ':'odds_num',
+        '年齢':'age','馬齢':'age','齢':'age','斤量':'weight_carried',
+        '馬体重':'horse_weight_raw','体重':'horse_weight_raw',
+        '増減':'weight_change','体重増減':'weight_change',
+        '調教師':'trainer','調教師名':'trainer',
+        '着順':'rank_num','人気':'favorite_num','性齢':'sex_age',
     }
-    df = df.rename(columns={k: v for k, v in JP_COL_MAP.items() if k in df.columns})
+    df = df.rename(columns={k: v for k, v in JP_MAP.items() if k in df.columns})
 
     # horse_nameがなければ最初の文字列列を使う
     if 'horse_name' not in df.columns:
@@ -167,23 +161,64 @@ def build_features(df, distance, course, track_condition):
                 df = df.rename(columns={col: 'horse_name'})
                 break
 
-    for c in ["odds","age","weight_carried","horse_weight","weight_change"]:
-        if c in df.columns:
-            df[c] = pd.to_numeric(df[c], errors="coerce")
-    df["odds"]           = df.get("odds",           pd.Series([10.0]*len(df))).fillna(10.0)
-    df["age"]            = df.get("age",             pd.Series([4]*len(df))).fillna(4)
-    df["weight_carried"] = df.get("weight_carried",  pd.Series([57.0]*len(df))).fillna(57.0)
-    df["horse_weight"]   = df.get("horse_weight",    pd.Series([490.0]*len(df))).fillna(490.0)
-    df["weight_change"]  = df.get("weight_change",   pd.Series([0.0]*len(df))).fillna(0.0)
-    df["jockey"]         = df.get("jockey",          pd.Series(["不明"]*len(df))).fillna("不明")
-    df["trainer"]        = df.get("trainer",         pd.Series(["不明"]*len(df))).fillna("不明")
-    df["distance_num"]       = distance
-    df["course_num"]         = 0 if course == "芝" else 1
-    df["track_cond_num"]     = TRACK_COND_MAP.get(track_condition, 0)
-    df["favorite_num"]       = df["odds"].rank(method="first").astype(int)
-    df["jockey_win_rate"]    = df["jockey"].map(JOCKEY_WIN_RATES).fillna(0.12)
-    df["trainer_win_rate"]   = df["trainer"].map(TRAINER_WIN_RATES).fillna(0.12)
-    df["horse_avg_rank_last5"] = 5.0
+    # 馬体重・増減
+    if 'horse_weight_raw' in df.columns:
+        df['horse_weight_kg'] = df['horse_weight_raw'].astype(str).str.extract(r'(\d+)').astype(float)
+        df['weight_change']   = df['horse_weight_raw'].astype(str).str.extract(r'\(([+-]?\d+)\)').astype(float).fillna(0)
+    elif 'horse_weight_kg' not in df.columns:
+        df['horse_weight_kg'] = pd.to_numeric(df.get('horse_weight', 490), errors='coerce').fillna(490)
+        df['weight_change']   = df.get('weight_change', pd.Series([0.0]*len(df))).fillna(0)
+
+    # 性別・年齢
+    if 'sex_age' in df.columns:
+        df['sex'] = df['sex_age'].str[0]
+        df['age'] = df['sex_age'].str[1:].apply(pd.to_numeric, errors='coerce').fillna(4)
+    df['sex_num'] = df.get('sex', pd.Series(['牡']*len(df))).map({'牡':0,'牝':1,'セン':2}).fillna(0)
+    df['age']     = pd.to_numeric(df.get('age', 4), errors='coerce').fillna(4)
+
+    # 基本情報
+    df['weight_carried'] = pd.to_numeric(df.get('weight_carried', 57), errors='coerce').fillna(57)
+    df['jockey']  = df.get('jockey',  pd.Series(['不明']*len(df))).fillna('不明')
+    df['trainer'] = df.get('trainer', pd.Series(['不明']*len(df))).fillna('不明')
+
+    # レース条件
+    df['distance_num']   = distance
+    df['course_num']     = 0 if course == '芝' else 1
+    df['track_cond_num'] = TRACK_COND_MAP.get(track_condition, 0)
+    df['venue_num']      = {'東京':4,'中山':5,'阪神':8,'京都':7,'中京':6,'新潟':3,
+                             '福島':2,'札幌':0,'函館':1,'小倉':9}.get(
+                             df.get('venue', pd.Series(['東京']*len(df))).iloc[0] if len(df)>0 else '東京', 4)
+
+    # オッズ
+    df['odds_num']     = pd.to_numeric(df.get('odds_num', df.get('odds', 10)), errors='coerce').fillna(10.0)
+    df['log_odds']     = np.log(df['odds_num'].clip(lower=1.1))
+    df['favorite_num'] = df['odds_num'].rank(method='first').astype(int)
+
+    # 騎手・調教師勝率
+    df['jockey_win_rate']   = df['jockey'].map(JOCKEY_WIN_RATES).fillna(0.12)
+    df['jockey_place_rate'] = df['jockey_win_rate'] * 2.5
+    df['trainer_win_rate']  = df['trainer'].map(TRAINER_WIN_RATES).fillna(0.12)
+
+    # 馬の過去成績（デフォルト値）
+    df['horse_avg_rank_last3']  = 5.0
+    df['horse_avg_rank_last5']  = 5.0
+    df['horse_best_rank']       = 3.0
+    df['horse_win_count']       = 2.0
+    df['horse_race_count']      = 10.0
+    df['horse_win_rate']        = 0.15
+    df['same_course_win_rate']  = 0.15
+    df['same_dist_win_rate']    = 0.15
+    df['days_since_last_race']  = 42.0
+    df['race_interval_score']   = 0.8
+    df['speed_index']           = 100.0
+    df['speed_index_avg3']      = 100.0
+
+    # 欠損補完
+    for col in FEATURE_COLS:
+        if col not in df.columns:
+            df[col] = 0.0
+        df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+
     return df
 
 
