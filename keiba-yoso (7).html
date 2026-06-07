@@ -1,0 +1,1735 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KEIBA AI - 競馬予想サイト</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&family=Bebas+Neue&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #1a4d2e;
+    --green-light: #2d7a4f;
+    --gold: #c9a84c;
+    --gold-light: #f0cc6e;
+    --cream: #fdf6e3;
+    --dark: #0d1a0f;
+    --red: #c0392b;
+    --white: #ffffff;
+    --shadow: 0 8px 32px rgba(0,0,0,0.35);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--dark);
+    color: var(--cream);
+    font-family: 'Noto Sans JP', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grass texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 40px,
+        rgba(26,77,46,0.07) 40px,
+        rgba(26,77,46,0.07) 80px
+      ),
+      radial-gradient(ellipse at 20% 50%, rgba(26,77,46,0.3) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(201,168,76,0.08) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* HEADER */
+  header {
+    position: relative;
+    z-index: 10;
+    background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(13,26,15,0.8) 100%);
+    border-bottom: 3px solid var(--gold);
+    padding: 0 2rem;
+  }
+
+  .header-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 70px;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.4rem;
+    letter-spacing: 4px;
+    color: var(--gold);
+    text-shadow: 0 0 20px rgba(201,168,76,0.5);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-icon {
+    font-size: 1.6rem;
+  }
+
+  .logo-sub {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 0.7rem;
+    color: rgba(253,246,227,0.6);
+    letter-spacing: 3px;
+    display: block;
+    margin-top: -4px;
+  }
+
+  nav { display: flex; gap: 1.5rem; }
+  nav a {
+    color: rgba(253,246,227,0.7);
+    text-decoration: none;
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    transition: color 0.2s;
+    padding: 4px 0;
+    border-bottom: 2px solid transparent;
+  }
+  nav a:hover { color: var(--gold); border-bottom-color: var(--gold); }
+
+  /* HERO */
+  .hero {
+    position: relative;
+    z-index: 5;
+    text-align: center;
+    padding: 60px 2rem 40px;
+    background: linear-gradient(180deg, transparent, rgba(13,26,15,0.4));
+  }
+
+  .hero-badge {
+    display: inline-block;
+    background: var(--gold);
+    color: var(--dark);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+    padding: 4px 14px;
+    border-radius: 2px;
+    margin-bottom: 16px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+
+  .hero h1 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 900;
+    line-height: 1.2;
+    margin-bottom: 12px;
+    background: linear-gradient(135deg, var(--gold-light), var(--gold), #a07830);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero p {
+    color: rgba(253,246,227,0.65);
+    font-size: 0.95rem;
+    letter-spacing: 1px;
+    margin-bottom: 32px;
+  }
+
+  /* DATE SELECTOR */
+  .date-bar {
+    position: relative;
+    z-index: 5;
+    max-width: 1200px;
+    margin: 0 auto 24px;
+    padding: 0 2rem;
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .date-bar::-webkit-scrollbar { display: none; }
+
+  .date-btn {
+    flex-shrink: 0;
+    background: rgba(26,77,46,0.3);
+    border: 1px solid rgba(201,168,76,0.25);
+    color: rgba(253,246,227,0.7);
+    padding: 8px 18px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .date-btn:hover, .date-btn.active {
+    background: var(--gold);
+    color: var(--dark);
+    border-color: var(--gold);
+    font-weight: 700;
+  }
+
+  /* MAIN LAYOUT */
+  .main {
+    position: relative;
+    z-index: 5;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem 4rem;
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 24px;
+  }
+
+  /* RACE CARDS */
+  .races-section h2 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1rem;
+    color: var(--gold);
+    letter-spacing: 3px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .races-section h2::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(201,168,76,0.4), transparent);
+  }
+
+  .race-card {
+    background: linear-gradient(135deg, rgba(26,77,46,0.25), rgba(13,26,15,0.6));
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 8px;
+    margin-bottom: 16px;
+    overflow: hidden;
+    transition: transform 0.2s, border-color 0.2s;
+    cursor: pointer;
+  }
+
+  .race-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(201,168,76,0.5);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+
+  .race-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(201,168,76,0.1);
+    background: rgba(0,0,0,0.2);
+  }
+
+  .race-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.8rem;
+    color: var(--gold);
+    line-height: 1;
+    min-width: 40px;
+  }
+
+  .race-info h3 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+
+  .race-meta {
+    font-size: 0.75rem;
+    color: rgba(253,246,227,0.5);
+    display: flex;
+    gap: 12px;
+  }
+
+  .race-meta span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .race-status {
+    margin-left: auto;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 4px 10px;
+    border-radius: 3px;
+  }
+
+  .status-live {
+    background: var(--red);
+    color: white;
+    animation: pulse 1s infinite;
+  }
+
+  .status-upcoming {
+    background: rgba(201,168,76,0.2);
+    color: var(--gold);
+    border: 1px solid var(--gold);
+  }
+
+  .status-done {
+    background: rgba(255,255,255,0.1);
+    color: rgba(253,246,227,0.4);
+  }
+
+  /* HORSES TABLE */
+  .horses {
+    padding: 14px 18px;
+    display: none;
+  }
+
+  .race-card.expanded .horses { display: block; }
+
+  .horses-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+  }
+
+  .horses-table thead th {
+    color: rgba(201,168,76,0.7);
+    font-weight: 400;
+    font-size: 0.72rem;
+    letter-spacing: 1px;
+    padding: 4px 8px 8px;
+    border-bottom: 1px solid rgba(201,168,76,0.15);
+    text-align: left;
+  }
+
+  .horses-table tbody tr {
+    transition: background 0.15s;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .horses-table tbody tr:hover { background: rgba(255,255,255,0.04); }
+
+  .horses-table td {
+    padding: 8px 8px;
+    vertical-align: middle;
+  }
+
+  .horse-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 3px;
+    font-weight: 400;
+  }
+
+  .horse-name {
+    font-family: 'Noto Serif JP', serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+
+  .horse-detail {
+    font-size: 0.72rem;
+    color: rgba(253,246,227,0.45);
+    margin-top: 1px;
+  }
+
+  .odds {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.3rem;
+    color: var(--gold-light);
+  }
+
+  /* AI SCORE BAR */
+  .ai-score {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 120px;
+  }
+
+  .score-bar-bg {
+    flex: 1;
+    height: 6px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .score-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.6s ease;
+  }
+
+  .score-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1rem;
+    min-width: 28px;
+    text-align: right;
+  }
+
+  .pick-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 2px;
+    letter-spacing: 1px;
+  }
+
+  .pick-1 { background: var(--gold); color: var(--dark); }
+  .pick-2 { background: rgba(201,168,76,0.3); color: var(--gold); border: 1px solid var(--gold); }
+  .pick-3 { background: rgba(255,255,255,0.1); color: rgba(253,246,227,0.6); }
+
+  /* SIDEBAR */
+  .sidebar { display: flex; flex-direction: column; gap: 20px; }
+
+  .widget {
+    background: linear-gradient(135deg, rgba(26,77,46,0.2), rgba(13,26,15,0.5));
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .widget-header {
+    background: rgba(0,0,0,0.3);
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(201,168,76,0.15);
+    font-family: 'Noto Serif JP', serif;
+    font-size: 0.85rem;
+    color: var(--gold);
+    letter-spacing: 2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .widget-body { padding: 16px; }
+
+  /* AI ANALYSIS WIDGET */
+  .ai-chat-btn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--gold), #a07830);
+    color: var(--dark);
+    border: none;
+    padding: 12px;
+    border-radius: 6px;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: opacity 0.2s, transform 0.15s;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .ai-chat-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+  .ai-chat-area {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(201,168,76,0.15);
+    border-radius: 6px;
+    min-height: 180px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 12px;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(201,168,76,0.3) transparent;
+  }
+
+  .ai-bubble {
+    background: rgba(26,77,46,0.3);
+    border: 1px solid rgba(201,168,76,0.15);
+    border-radius: 8px 8px 8px 2px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    color: rgba(253,246,227,0.85);
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  .ai-bubble .label {
+    font-size: 0.65rem;
+    color: var(--gold);
+    letter-spacing: 1px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .ai-input-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .ai-input {
+    flex: 1;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(201,168,76,0.25);
+    border-radius: 4px;
+    color: var(--cream);
+    padding: 8px 12px;
+    font-size: 0.82rem;
+    font-family: 'Noto Sans JP', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .ai-input:focus { border-color: var(--gold); }
+
+  .ai-send {
+    background: var(--green-light);
+    border: none;
+    color: white;
+    padding: 8px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background 0.2s;
+  }
+
+  .ai-send:hover { background: var(--gold); color: var(--dark); }
+
+  /* STATS WIDGET */
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-size: 0.82rem;
+  }
+
+  .stat-row:last-child { border-bottom: none; }
+  .stat-label { color: rgba(253,246,227,0.55); }
+  .stat-val { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; color: var(--gold-light); }
+  .stat-val.green { color: #4caf50; }
+  .stat-val.red { color: var(--red); }
+
+  /* RACE TRACK GRAPHIC */
+  .track-graphic {
+    display: flex;
+    justify-content: center;
+    margin: 12px 0;
+  }
+
+  .track-svg { width: 100%; max-width: 280px; }
+
+  /* LOADING SPINNER */
+  .loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: rgba(253,246,227,0.4);
+    font-size: 0.82rem;
+    padding: 20px;
+  }
+
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(201,168,76,0.2);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* COLOR CLASSES FOR HORSE NUMS */
+  .bg-black { background: #111; color: white; }
+  .bg-white { background: white; color: #111; }
+  .bg-red { background: var(--red); color: white; }
+  .bg-blue { background: #2563eb; color: white; }
+  .bg-yellow { background: #eab308; color: #111; }
+  .bg-green2 { background: #16a34a; color: white; }
+  .bg-orange { background: #ea580c; color: white; }
+  .bg-pink { background: #ec4899; color: white; }
+
+  /* SCORE COLORS */
+  .score-high { background: linear-gradient(90deg, #f0cc6e, #c9a84c); }
+  .score-mid { background: linear-gradient(90deg, #4caf50, #2d7a4f); }
+  .score-low { background: linear-gradient(90deg, rgba(255,255,255,0.3), rgba(255,255,255,0.15)); }
+
+  /* FOOTER */
+  footer {
+    position: relative;
+    z-index: 5;
+    padding: 40px 2rem 24px;
+    border-top: 1px solid rgba(201,168,76,0.15);
+    font-size: 0.75rem;
+    color: rgba(253,246,227,0.4);
+  }
+  .footer-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .footer-disclaimer {
+    background: rgba(192,57,43,0.08);
+    border: 1px solid rgba(192,57,43,0.25);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    text-align: left;
+  }
+  .footer-disclaimer h4 {
+    color: #e07070 !important;
+    font-size: 0.82rem;
+    letter-spacing: 2px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .footer-disclaimer ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 24px;
+  }
+  .footer-disclaimer ul li {
+    font-size: 0.78rem;
+    color: rgba(253,246,227,0.6);
+    line-height: 1.6;
+    padding-left: 1.2em;
+    position: relative;
+  }
+  .footer-disclaimer ul li::before {
+    content: '⚠';
+    position: absolute;
+    left: 0;
+    font-size: 0.7rem;
+    color: #e07070;
+  }
+  .footer-bottom {
+    text-align: center;
+    color: rgba(253,246,227,0.25);
+    font-size: 0.72rem;
+    line-height: 2;
+  }
+  @media (max-width: 768px) {
+    .footer-disclaimer ul { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 768px) {
+    .main { grid-template-columns: 1fr; }
+    nav { display: none; }
+    .hero h1 { font-size: 1.8rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <span class="logo-icon">🏇</span>
+      <div>
+        KEIBA AI
+        <span class="logo-sub">競馬 AI 予想システム</span>
+      </div>
+    </div>
+    <nav>
+      <a href="#" class="nav-link active" data-page="today">本日のレース</a>
+      <a href="#" class="nav-link" data-page="graded">重賞情報</a>
+      <a href="#" class="nav-link" data-page="history">過去の成績</a>
+      <a href="#" class="nav-link" data-page="howto">使い方</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero" id="heroSection">
+  <div class="hero-badge" id="heroBadge">🤖 AI POWERED PREDICTION</div>
+  <h1 id="heroTitle">今週のレース予想</h1>
+  <p id="heroDesc">AIが過去データ・血統・馬場状態を総合分析</p>
+  <p style="font-size:0.82rem;color:rgba(201,168,76,0.7);margin-top:8px;letter-spacing:2px" id="liveClock"></p>
+</section>
+
+<div class="date-bar" id="dateBar">
+  <!-- JavaScriptで自動生成 -->
+</div>
+
+<div class="main" id="pageToday">
+  <!-- RACE LIST -->
+  <div class="races-section">
+    <h2>🏁 本日のレース一覧</h2>
+
+    <!-- RACE 1 - LIVE -->
+    <div class="race-card expanded" onclick="toggleRace(this)">
+      <div class="race-header">
+        <div class="race-num">11</div>
+        <div class="race-info">
+          <h3>大阪杯 (G1)</h3>
+          <div class="race-meta">
+            <span>📍 阪神</span>
+            <span>🏟 芝 2000m</span>
+            <span>⏰ 15:40</span>
+          </div>
+        </div>
+        <div class="race-status status-live">● LIVE</div>
+      </div>
+      <div class="horses">
+        <table class="horses-table">
+          <thead>
+            <tr>
+              <th>枠</th>
+              <th>馬名</th>
+              <th>騎手</th>
+              <th>単勝</th>
+              <th>AI予想</th>
+              <th>印</th>
+            </tr>
+          </thead>
+          <tbody id="race11-tbody">
+            <tr><td colspan="6"><div class="loading"><div class="spinner"></div>AI分析中...</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- RACE 2 -->
+    <div class="race-card" onclick="toggleRace(this)">
+      <div class="race-header">
+        <div class="race-num">10</div>
+        <div class="race-info">
+          <h3>六甲ステークス (G3)</h3>
+          <div class="race-meta">
+            <span>📍 阪神</span>
+            <span>🏟 芝 1600m</span>
+            <span>⏰ 15:05</span>
+          </div>
+        </div>
+        <div class="race-status status-done">終了</div>
+      </div>
+      <div class="horses">
+        <table class="horses-table">
+          <thead>
+            <tr><th>枠</th><th>馬名</th><th>騎手</th><th>単勝</th><th>AI予想</th><th>印</th></tr>
+          </thead>
+          <tbody id="race10-tbody">
+            <tr><td colspan="6"><div class="loading"><div class="spinner"></div>読み込み中...</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- RACE 3 -->
+    <div class="race-card" onclick="toggleRace(this)">
+      <div class="race-header">
+        <div class="race-num">12</div>
+        <div class="race-info">
+          <h3>ダービー卿チャレンジ (G3)</h3>
+          <div class="race-meta">
+            <span>📍 中山</span>
+            <span>🏟 芝 1600m</span>
+            <span>⏰ 16:25</span>
+          </div>
+        </div>
+        <div class="race-status status-upcoming">出走前</div>
+      </div>
+      <div class="horses">
+        <table class="horses-table">
+          <thead>
+            <tr><th>枠</th><th>馬名</th><th>騎手</th><th>単勝</th><th>AI予想</th><th>印</th></tr>
+          </thead>
+          <tbody id="race12-tbody">
+            <tr><td colspan="6"><div class="loading"><div class="spinner"></div>読み込み中...</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+
+    <!-- AI CHAT -->
+    <div class="widget">
+      <div class="widget-header">🤖 AI アドバイザー</div>
+      <div class="widget-body">
+        <div class="ai-chat-area" id="chatArea">
+          <div class="ai-bubble">
+            <div class="label">AI KEIBA</div>
+            こんにちは！本日の大阪杯G1について何でもお聞きください。馬の状態、血統分析、馬場適性など詳しくご案内します。
+          </div>
+        </div>
+        <div class="ai-input-row">
+          <input class="ai-input" id="chatInput" type="text" placeholder="例：本命馬を教えて" onkeydown="if(event.key==='Enter') sendChat()">
+          <button class="ai-send" onclick="sendChat()">送信</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TRACK INFO -->
+    <div class="widget">
+      <div class="widget-header">🌱 馬場情報</div>
+      <div class="widget-body">
+        <div class="track-graphic">
+          <svg class="track-svg" viewBox="0 0 280 160" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="140" cy="80" rx="130" ry="68" fill="none" stroke="rgba(201,168,76,0.3)" stroke-width="20"/>
+            <ellipse cx="140" cy="80" rx="130" ry="68" fill="none" stroke="rgba(26,77,46,0.5)" stroke-width="19"/>
+            <ellipse cx="140" cy="80" rx="80" ry="38" fill="rgba(26,77,46,0.4)"/>
+            <text x="140" y="76" text-anchor="middle" fill="rgba(201,168,76,0.8)" font-family="Noto Sans JP" font-size="11">阪神</text>
+            <text x="140" y="92" text-anchor="middle" fill="rgba(253,246,227,0.5)" font-family="Noto Sans JP" font-size="9">芝 2000m</text>
+            <circle cx="60" cy="80" r="4" fill="#f0cc6e"/>
+            <text x="60" y="73" text-anchor="middle" fill="rgba(253,246,227,0.6)" font-family="Bebas Neue" font-size="10">START</text>
+          </svg>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">馬場状態</span>
+          <span class="stat-val">良</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">天気</span>
+          <span class="stat-val">☀️ 晴</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">気温</span>
+          <span class="stat-val">17°C</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">含水率</span>
+          <span class="stat-val green">9.8%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI STATS -->
+    <div class="widget">
+      <div class="widget-header">📊 AI的中実績</div>
+      <div class="widget-body">
+        <div class="stat-row">
+          <span class="stat-label">今月的中率 (単勝)</span>
+          <span class="stat-val green">38%</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">複勝的中率</span>
+          <span class="stat-val green">61%</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">G1予想的中</span>
+          <span class="stat-val">3 / 7</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">回収率</span>
+          <span class="stat-val green">112%</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">分析レース数</span>
+          <span class="stat-val">1,240</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ PAGE: 重賞情報 ══ -->
+<div id="pageGraded" class="page-section" style="display:none">
+  <div style="max-width:1200px;margin:0 auto;padding:0 2rem 4rem;position:relative;z-index:5">
+    <h2 style="font-family:'Noto Serif JP',serif;color:var(--gold);letter-spacing:3px;margin-bottom:24px;font-size:1rem;display:flex;align-items:center;gap:10px">
+      🏆 重賞情報
+      <span style="flex:1;height:1px;background:linear-gradient(90deg,rgba(201,168,76,0.4),transparent)"></span>
+    </h2>
+    <div id="gradedList"></div>
+  </div>
+</div>
+
+<!-- ══ PAGE: 過去の成績 ══ -->
+<div id="pageHistory" class="page-section" style="display:none">
+  <div style="max-width:1200px;margin:0 auto;padding:0 2rem 4rem;position:relative;z-index:5">
+    <h2 style="font-family:'Noto Serif JP',serif;color:var(--gold);letter-spacing:3px;margin-bottom:24px;font-size:1rem;display:flex;align-items:center;gap:10px">
+      📊 過去の成績
+      <span style="flex:1;height:1px;background:linear-gradient(90deg,rgba(201,168,76,0.4),transparent)"></span>
+    </h2>
+    <!-- 月別フィルター -->
+    <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap" id="historyMonthFilter"></div>
+    <div id="historyTable"></div>
+  </div>
+</div>
+
+<!-- ══ PAGE: 使い方 ══ -->
+<div id="pageHowto" class="page-section" style="display:none">
+  <div style="max-width:900px;margin:0 auto;padding:0 2rem 4rem;position:relative;z-index:5">
+    <h2 style="font-family:'Noto Serif JP',serif;color:var(--gold);letter-spacing:3px;margin-bottom:24px;font-size:1rem;display:flex;align-items:center;gap:10px">
+      📖 使い方
+      <span style="flex:1;height:1px;background:linear-gradient(90deg,rgba(201,168,76,0.4),transparent)"></span>
+    </h2>
+
+    <div style="display:flex;flex-direction:column;gap:20px">
+
+      <!-- STEP 1 -->
+      <div style="background:linear-gradient(135deg,rgba(26,77,46,0.3),rgba(13,26,15,0.6));border:1px solid rgba(201,168,76,0.25);border-radius:10px;padding:24px;display:flex;gap:20px;align-items:flex-start">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:3rem;color:var(--gold);line-height:1;min-width:56px;text-align:center">01</div>
+        <div>
+          <div style="font-family:'Noto Serif JP',serif;font-size:1rem;color:var(--gold-light);font-weight:700;margin-bottom:8px">開催日を選択する</div>
+          <div style="font-size:0.85rem;color:rgba(253,246,227,0.7);line-height:1.8">
+            ページ上部の日付バーから観戦したい開催日をクリックしてください。<br>
+            土曜・日曜のレースが自動的に表示されます。「本日」と表示されている日が今日です。
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2 -->
+      <div style="background:linear-gradient(135deg,rgba(26,77,46,0.3),rgba(13,26,15,0.6));border:1px solid rgba(201,168,76,0.25);border-radius:10px;padding:24px;display:flex;gap:20px;align-items:flex-start">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:3rem;color:var(--gold);line-height:1;min-width:56px;text-align:center">02</div>
+        <div>
+          <div style="font-family:'Noto Serif JP',serif;font-size:1rem;color:var(--gold-light);font-weight:700;margin-bottom:8px">レースをクリックして出走馬を確認</div>
+          <div style="font-size:0.85rem;color:rgba(253,246,227,0.7);line-height:1.8">
+            レースカードをクリックすると出走馬一覧が展開されます。<br>
+            各馬のAIスコア（0〜100）と印（◎○▲）が表示されます。
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 3 -->
+      <div style="background:linear-gradient(135deg,rgba(26,77,46,0.3),rgba(13,26,15,0.6));border:1px solid rgba(201,168,76,0.25);border-radius:10px;padding:24px;display:flex;gap:20px;align-items:flex-start">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:3rem;color:var(--gold);line-height:1;min-width:56px;text-align:center">03</div>
+        <div>
+          <div style="font-family:'Noto Serif JP',serif;font-size:1rem;color:var(--gold-light);font-weight:700;margin-bottom:8px">AI予想スコアの見方</div>
+          <div style="font-size:0.85rem;color:rgba(253,246,227,0.7);line-height:1.8">
+            スコアが高いほどAIが勝利の可能性が高いと判断した馬です。<br>
+            <span style="color:var(--gold)">◎ 本命</span>：最も高スコアの馬　
+            <span style="color:rgba(201,168,76,0.7)">○ 対抗</span>：2番手　
+            <span style="color:rgba(253,246,227,0.5)">▲ 単穴</span>：3番手<br>
+            AIスコアは過去の成績・騎手・馬場適性・血統などを総合的に分析して算出しています。
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 4 -->
+      <div style="background:linear-gradient(135deg,rgba(26,77,46,0.3),rgba(13,26,15,0.6));border:1px solid rgba(201,168,76,0.25);border-radius:10px;padding:24px;display:flex;gap:20px;align-items:flex-start">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:3rem;color:var(--gold);line-height:1;min-width:56px;text-align:center">04</div>
+        <div>
+          <div style="font-family:'Noto Serif JP',serif;font-size:1rem;color:var(--gold-light);font-weight:700;margin-bottom:8px">AIアドバイザーに質問する</div>
+          <div style="font-size:0.85rem;color:rgba(253,246,227,0.7);line-height:1.8">
+            右サイドバーのAIアドバイザーに気になることを入力してください。<br>
+            「本命」「対抗」「穴馬」「馬場」「買い方」などのキーワードに対応しています。
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 5 -->
+      <div style="background:linear-gradient(135deg,rgba(26,77,46,0.3),rgba(13,26,15,0.6));border:1px solid rgba(201,168,76,0.25);border-radius:10px;padding:24px;display:flex;gap:20px;align-items:flex-start">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:3rem;color:var(--gold);line-height:1;min-width:56px;text-align:center">05</div>
+        <div>
+          <div style="font-family:'Noto Serif JP',serif;font-size:1rem;color:var(--gold-light);font-weight:700;margin-bottom:8px">重賞情報・過去の成績を確認する</div>
+          <div style="font-size:0.85rem;color:rgba(253,246,227,0.7);line-height:1.8">
+            上部ナビの「重賞情報」では今後のG1・G2・G3レースを一覧で確認できます。<br>
+            「過去の成績」ではAI予想の的中実績を月別・レース別で振り返ることができます。
+          </div>
+        </div>
+      </div>
+
+      <!-- 注意事項 -->
+      <div style="background:rgba(192,57,43,0.08);border:1px solid rgba(192,57,43,0.25);border-radius:10px;padding:20px">
+        <div style="color:#e07070;font-weight:700;margin-bottom:10px;font-size:0.85rem">⚠️ ご注意</div>
+        <div style="font-size:0.82rem;color:rgba(253,246,227,0.65);line-height:1.8">
+          本サイトのAI予想はあくまで参考情報です。馬券購入は必ずご自身の判断で行ってください。<br>
+          競馬は公営ギャンブルです。のめり込みに注意し、楽しめる範囲でご利用ください。
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-inner">
+
+    <div class="footer-disclaimer">
+      <h4>⚠️ 免責事項・ご利用上の注意</h4>
+      <ul>
+        <li>本サイトの予想はAIによる<strong style="color:#f0cc6e">参考情報</strong>であり、的中を保証するものではありません。</li>
+        <li>馬券の購入は<strong style="color:#f0cc6e">利用者ご自身の判断と責任</strong>で行ってください。</li>
+        <li>本サイトは<strong style="color:#f0cc6e">無料・非営利</strong>で運営しています。予想情報の有料販売は行っていません。</li>
+        <li>予想情報を利用したことによる<strong style="color:#f0cc6e">損失・損害について一切の責任を負いません</strong>。</li>
+        <li>JRA・netkeibaなど外部サービスの画像・データの<strong style="color:#f0cc6e">無断転載は行っていません</strong>。</li>
+        <li>的中率・回収率の数値は<strong style="color:#f0cc6e">過去の実績であり将来の成績を保証するものではありません</strong>。</li>
+        <li>「必ず当たる」「絶対儲かる」などの<strong style="color:#f0cc6e">断定的な表現は一切使用していません</strong>。</li>
+        <li>本サービスは競馬法・景品表示法・著作権法などの<strong style="color:#f0cc6e">関連法令を遵守</strong>して運営しています。</li>
+      </ul>
+    </div>
+
+    <div class="footer-bottom">
+      本サイトは個人が趣味で運営する競馬予想サイトです。JRA・地方競馬・netkeibaとは一切関係ありません。<br>
+      競馬は公営ギャンブルです。のめり込みに注意し、適度に楽しみましょう。<br>
+      ギャンブル等依存症でお困りの方は <strong style="color:rgba(253,246,227,0.5)">公益財団法人 日本競馬馬主協会 相談窓口</strong> または
+      <strong style="color:rgba(253,246,227,0.5)">全国ギャンブル依存症家族の会</strong> にご相談ください。<br><br>
+      © 2026 KEIBA AI — All Rights Reserved
+    </div>
+
+  </div>
+</footer>
+
+<script>
+// ══════════════════════════════════════
+//  日付バー自動生成
+// ══════════════════════════════════════
+// buildDateBar は raceDateDB 定義後に呼ぶ（下部の initAll で実行）
+function buildDateBar() {
+  const DAY_JA = ['日','月','火','水','木','金','土'];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // raceDateDBの全キーから日付を生成（データがある日付を全て表示）
+  const dbKeys = Object.keys(raceDateDB).sort();
+  const bar = document.getElementById('dateBar');
+  bar.innerHTML = '';
+
+  dbKeys.forEach(dkey => {
+    const parts = dkey.split('-');
+    const d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+    const btn = document.createElement('button');
+    btn.className = 'date-btn';
+    const m = d.getMonth() + 1;
+    const day = d.getDate();
+    const youbi = DAY_JA[d.getDay()];
+    const isToday = d.getTime() === today.getTime();
+    btn.textContent = `${m}/${day}(${youbi})${isToday ? ' 本日' : ''}`;
+    btn.dataset.datekey = dkey;
+    // データがある日は枠を強調
+    btn.style.borderColor = 'rgba(201,168,76,0.55)';
+    if (isToday) btn.classList.add('active');
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.date-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderDateRaces(dkey);
+    });
+    bar.appendChild(btn);
+  });
+
+  // 今日がデータにない場合 → 最も近い日付をアクティブに
+  if (!bar.querySelector('.active')) {
+    const nearest = dbKeys.reduce((prev, cur) => {
+      const pd = Math.abs(new Date(prev.split('-')[0], prev.split('-')[1]-1, prev.split('-')[2]) - today);
+      const cd = Math.abs(new Date(cur.split('-')[0],  cur.split('-')[1]-1,  cur.split('-')[2])  - today);
+      return cd < pd ? cur : prev;
+    });
+    const targetBtn = bar.querySelector(`[data-datekey="${nearest}"]`);
+    if (targetBtn) targetBtn.classList.add('active');
+  }
+}
+
+// ══════════════════════════════════════
+//  ヘッダー日時リアルタイム表示
+// ══════════════════════════════════════
+(function updateClock() {
+  const el = document.getElementById('liveClock');
+  if (!el) return;
+  const tick = () => {
+    const now = new Date();
+    const DAY_JA = ['日','月','火','水','木','金','土'];
+    const m  = now.getMonth() + 1;
+    const d  = now.getDate();
+    const yw = DAY_JA[now.getDay()];
+    const hh = String(now.getHours()).padStart(2,'0');
+    const mm = String(now.getMinutes()).padStart(2,'0');
+    el.textContent = `${m}月${d}日(${yw}) ${hh}:${mm}`;
+  };
+  tick();
+  setInterval(tick, 1000);
+})();
+
+// === RACE DATA ===
+// ══════════════════════════════════════
+//  日付別レースデータベース
+// ══════════════════════════════════════
+// キー形式: "YYYY-M-D"（例: "2026-3-29"）
+// 各日付に races 配列を持つ
+const raceDateDB = {
+
+  // ── 3/28(土) 大阪杯 ──
+  '2026-3-28': {
+    venue: '阪神 / 中山',
+    races: [
+      { num:11, name:'大阪杯', grade:'G1', venue:'阪神', course:'芝2000m', time:'15:40', status:'done',
+        horses:[
+          {num:1,color:'bg-white', name:'ドウデュース',       detail:'牡5/57kg',jockey:'武豊',    odds:'3.2', score:88},
+          {num:2,color:'bg-black', name:'プログノーシス',     detail:'牡5/57kg',jockey:'川田将雅', odds:'4.1', score:81},
+          {num:3,color:'bg-red',   name:'ローシャムパーク',   detail:'牡5/57kg',jockey:'戸崎圭太', odds:'5.8', score:74},
+          {num:4,color:'bg-blue',  name:'ソールオリエンス',   detail:'牡4/57kg',jockey:'横山武史', odds:'6.3', score:70},
+          {num:5,color:'bg-yellow',name:'ベラジオオペラ',     detail:'牡4/57kg',jockey:'横山和生', odds:'11.0',score:55},
+          {num:6,color:'bg-green2',name:'ジャックドール',     detail:'牡6/57kg',jockey:'藤岡佑',   odds:'8.5', score:62},
+          {num:7,color:'bg-orange',name:'リカンカブール',     detail:'牡4/57kg',jockey:'デムーロ', odds:'28.0',score:38},
+          {num:8,color:'bg-pink',  name:'ヒシイグアス',       detail:'牡8/57kg',jockey:'松山弘平', odds:'41.0',score:25},
+        ]},
+      { num:10, name:'六甲ステークス', grade:'G3', venue:'阪神', course:'芝1600m', time:'15:05', status:'done',
+        horses:[
+          {num:1,color:'bg-white', name:'シュネルマイスター', detail:'牡6/57kg',jockey:'ルメール', odds:'2.9', score:91},
+          {num:2,color:'bg-black', name:'セリフォス',         detail:'牡5/57kg',jockey:'川田将雅', odds:'3.8', score:83},
+          {num:3,color:'bg-red',   name:'ナミュール',         detail:'牝5/55kg',jockey:'横山武史', odds:'4.5', score:79},
+          {num:4,color:'bg-blue',  name:'エルトンバローズ',   detail:'牡4/57kg',jockey:'坂井瑠星', odds:'6.2', score:70},
+          {num:5,color:'bg-yellow',name:'マテンロウスカイ',   detail:'牡5/57kg',jockey:'横山典弘', odds:'12.0',score:48},
+        ]},
+      { num:12, name:'ダービー卿チャレンジT', grade:'G3', venue:'中山', course:'芝1600m', time:'16:25', status:'done',
+        horses:[
+          {num:1,color:'bg-white', name:'レッドモンレーヴ',   detail:'牡4/57kg',jockey:'ルメール', odds:'3.3', score:86},
+          {num:2,color:'bg-black', name:'ソウルラッシュ',     detail:'牡5/57kg',jockey:'北村友一', odds:'4.9', score:77},
+          {num:3,color:'bg-red',   name:'グレナディアガーズ', detail:'牡6/57kg',jockey:'川田将雅', odds:'7.2', score:65},
+          {num:4,color:'bg-blue',  name:'エアロロノア',       detail:'牡6/57kg',jockey:'三浦皇成', odds:'15.0',score:42},
+          {num:5,color:'bg-yellow',name:'トゥラヴェスーラ',   detail:'牡8/57kg',jockey:'荻野極',   odds:'35.0',score:22},
+        ]},
+    ]
+  },
+
+  // ── 3/29(日) ──
+  '2026-3-29': {
+    venue: '阪神 / 中山',
+    races: [
+      { num:11, name:'毎日杯', grade:'G3', venue:'阪神', course:'芝1800m', time:'15:45', status:'done',
+        horses:[
+          {num:1,color:'bg-white', name:'ジャスティンミラノ', detail:'牡3/56kg',jockey:'戸崎圭太', odds:'2.1', score:92},
+          {num:2,color:'bg-black', name:'シックスペンス',     detail:'牡3/56kg',jockey:'川田将雅', odds:'4.5', score:75},
+          {num:3,color:'bg-red',   name:'コスモキュービック', detail:'牡3/56kg',jockey:'横山武史', odds:'8.5', score:58},
+          {num:4,color:'bg-blue',  name:'メイショウタバル',   detail:'牡3/56kg',jockey:'幸英明',   odds:'12.0',score:44},
+        ]},
+      { num:10, name:'スプリングS', grade:'G2', venue:'中山', course:'芝1800m', time:'15:05', status:'done',
+        horses:[
+          {num:1,color:'bg-white', name:'ダノンエアズロック', detail:'牡3/56kg',jockey:'モレイラ', odds:'3.1', score:85},
+          {num:2,color:'bg-black', name:'サンライズジパング', detail:'牡3/56kg',jockey:'松山弘平', odds:'5.2', score:68},
+          {num:3,color:'bg-red',   name:'エコロヴァルツ',     detail:'牡3/56kg',jockey:'横山和生', odds:'6.5', score:63},
+          {num:4,color:'bg-blue',  name:'ファビュラスセンス', detail:'牡3/56kg',jockey:'岩田望来', odds:'9.0', score:52},
+        ]},
+    ]
+  },
+
+  // ── 4/4(土) 桜花賞 ──
+  '2026-4-4': {
+    venue: '阪神 / 中山',
+    races: [
+      { num:11, name:'桜花賞', grade:'G1', venue:'阪神', course:'芝1600m', time:'15:40', status:'done',
+        horses:[
+          {num:1,color:'bg-white', name:'ステレンボッシュ',   detail:'牝3/55kg',jockey:'川田将雅', odds:'2.5', score:91},
+          {num:2,color:'bg-black', name:'アスコリピチェーノ', detail:'牝3/55kg',jockey:'北村友一', odds:'4.1', score:80},
+          {num:3,color:'bg-red',   name:'スウィープフィート', detail:'牝3/55kg',jockey:'幸英明',   odds:'6.3', score:72},
+          {num:4,color:'bg-blue',  name:'クイーンズウォーク', detail:'牝3/55kg',jockey:'戸崎圭太', odds:'8.0', score:65},
+          {num:5,color:'bg-yellow',name:'イフェイオン',       detail:'牝3/55kg',jockey:'横山武史', odds:'12.0',score:48},
+        ]},
+      { num:10, name:'ニュージーランドT', grade:'G2', venue:'中山', course:'芝1600m', time:'15:10', status:'done',
+        horses:[
+          {num:1,color:'bg-white', name:'ゴンバデカーブース', detail:'牡3/56kg',jockey:'ルメール', odds:'3.8', score:82},
+          {num:2,color:'bg-black', name:'ダノンマッキンリー', detail:'牡3/56kg',jockey:'モレイラ', odds:'4.2', score:78},
+          {num:3,color:'bg-red',   name:'コラソンビート',     detail:'牝3/54kg',jockey:'横山典弘', odds:'5.5', score:70},
+        ]},
+    ]
+  },
+
+  // ── 4/5(日) ──
+  '2026-4-5': {
+    venue: '阪神',
+    races: [
+      { num:11, name:'阪神牝馬S', grade:'G2', venue:'阪神', course:'芝1600m', time:'15:45', status:'done',
+        horses:[
+          {num:1,color:'bg-white', name:'フィアスプライド',   detail:'牝5/55kg',jockey:'戸崎圭太', odds:'3.5', score:84},
+          {num:2,color:'bg-black', name:'テンハッピーローズ', detail:'牝5/55kg',jockey:'坂井瑠星', odds:'4.8', score:74},
+          {num:3,color:'bg-red',   name:'コンクシェル',       detail:'牝4/55kg',jockey:'川田将雅', odds:'5.2', score:71},
+          {num:4,color:'bg-blue',  name:'ライラック',         detail:'牝5/55kg',jockey:'ルメール', odds:'6.0', score:66},
+        ]},
+    ]
+  },
+
+  // ── 4/11(土) ──
+  '2026-4-11': {
+    venue: '阪神 / 福島',
+    races: [
+      { num:11, name:'アーリントンC', grade:'G3', venue:'阪神', course:'芝1600m', time:'15:45', status:'done',
+        horses:[
+          {num:1,color:'bg-white', name:'ダノンマッキンリー', detail:'牡3/56kg',jockey:'モレイラ', odds:'3.5', score:85},
+          {num:2,color:'bg-black', name:'レガレイラ',         detail:'牡3/56kg',jockey:'ルメール', odds:'3.2', score:86},
+          {num:3,color:'bg-red',   name:'シンエンペラー',     detail:'牡3/56kg',jockey:'坂井瑠星', odds:'4.5', score:76},
+          {num:4,color:'bg-blue',  name:'ゴンバデカーブース', detail:'牡3/56kg',jockey:'横山武史', odds:'6.0', score:65},
+        ]},
+      { num:10, name:'福島牝馬S', grade:'G3', venue:'福島', course:'芝1800m', time:'15:10', status:'done',
+        horses:[
+          {num:1,color:'bg-white', name:'ルージュエヴァイユ', detail:'牝5/55kg',jockey:'川田将雅', odds:'3.8', score:80},
+          {num:2,color:'bg-black', name:'ドゥアイズ',         detail:'牝4/55kg',jockey:'戸崎圭太', odds:'4.5', score:74},
+          {num:3,color:'bg-red',   name:'フィアスプライド',   detail:'牝5/55kg',jockey:'横山武史', odds:'5.0', score:70},
+        ]},
+    ]
+  },
+
+  // ── 4/12(日) ──
+  '2026-4-12': {
+    venue: '阪神',
+    races: [
+      { num:11, name:'アンタレスS', grade:'G3', venue:'阪神', course:'ダ1800m', time:'15:45', status:'done',
+        horses:[
+          {num:1,color:'bg-white', name:'テーオーケインズ',   detail:'牡7/57kg',jockey:'松山弘平', odds:'2.8', score:88},
+          {num:2,color:'bg-black', name:'ウィルソンテソーロ', detail:'牡5/57kg',jockey:'川田将雅', odds:'3.5', score:82},
+          {num:3,color:'bg-red',   name:'メイショウハリオ',   detail:'牡7/57kg',jockey:'浜中俊',   odds:'6.0', score:65},
+          {num:4,color:'bg-blue',  name:'セキフウ',           detail:'牡6/57kg',jockey:'坂井瑠星', odds:'8.5', score:58},
+        ]},
+    ]
+  },
+
+  // ── 4/18(土) 皐月賞 ──
+  '2026-4-18': {
+    venue: '中山 / 阪神',
+    races: [
+      { num:11, name:'皐月賞', grade:'G1', venue:'中山', course:'芝2000m', time:'15:40', status:'upcoming',
+        horses:[
+          {num:1,color:'bg-white', name:'ジャスティンミラノ', detail:'牡3/57kg',jockey:'戸崎圭太', odds:'3.2', score:87},
+          {num:2,color:'bg-black', name:'レガレイラ',         detail:'牡3/57kg',jockey:'ルメール', odds:'3.8', score:84},
+          {num:3,color:'bg-red',   name:'ダノンエアズロック', detail:'牡3/57kg',jockey:'モレイラ', odds:'4.0', score:81},
+          {num:4,color:'bg-blue',  name:'シンエンペラー',     detail:'牡3/57kg',jockey:'坂井瑠星', odds:'5.5', score:72},
+          {num:5,color:'bg-yellow',name:'コスモキュービック', detail:'牡3/57kg',jockey:'横山武史', odds:'12.0',score:48},
+        ]},
+      { num:10, name:'福島牝馬S', grade:'G3', venue:'阪神', course:'芝1600m', time:'15:10', status:'upcoming',
+        horses:[
+          {num:1,color:'bg-white', name:'ライラック',         detail:'牝5/55kg',jockey:'ルメール', odds:'3.5', score:80},
+          {num:2,color:'bg-black', name:'フィアスプライド',   detail:'牝5/55kg',jockey:'戸崎圭太', odds:'4.2', score:75},
+          {num:3,color:'bg-red',   name:'テンハッピーローズ', detail:'牝5/55kg',jockey:'坂井瑠星', odds:'6.0', score:66},
+        ]},
+    ]
+  },
+
+  // ── 4/19(日) ──
+  '2026-4-19': {
+    venue: '京都',
+    races: [
+      { num:11, name:'マイラーズC', grade:'G2', venue:'京都', course:'芝1600m', time:'15:45', status:'upcoming',
+        horses:[
+          {num:1,color:'bg-white', name:'ナミュール',         detail:'牝6/55kg',jockey:'ルメール', odds:'3.2', score:85},
+          {num:2,color:'bg-black', name:'ダノンスコーピオン', detail:'牡5/57kg',jockey:'川田将雅', odds:'3.8', score:82},
+          {num:3,color:'bg-red',   name:'ソウルラッシュ',     detail:'牡6/57kg',jockey:'北村友一', odds:'4.2', score:78},
+          {num:4,color:'bg-blue',  name:'セリフォス',         detail:'牡6/57kg',jockey:'横山武史', odds:'5.0', score:74},
+        ]},
+    ]
+  },
+
+  // ── 4/25(土) 天皇賞（春） ──
+  '2026-4-25': {
+    venue: '京都',
+    races: [
+      { num:11, name:'天皇賞（春）', grade:'G1', venue:'京都', course:'芝3200m', time:'15:40', status:'upcoming',
+        horses:[
+          {num:1,color:'bg-white', name:'ドゥレッツァ',       detail:'牡5/58kg',jockey:'戸崎圭太', odds:'3.5', score:85},
+          {num:2,color:'bg-black', name:'サリエラ',           detail:'牝6/56kg',jockey:'ルメール', odds:'4.2', score:80},
+          {num:3,color:'bg-red',   name:'ブローザホーン',     detail:'牡6/58kg',jockey:'菅原明良', odds:'6.5', score:70},
+          {num:4,color:'bg-blue',  name:'ディープボンド',     detail:'牡8/58kg',jockey:'和田竜二', odds:'12.0',score:52},
+        ]},
+    ]
+  },
+
+  // ── 4/26(日) ──
+  '2026-4-26': {
+    venue: '東京',
+    races: [
+      { num:11, name:'フローラS', grade:'G2', venue:'東京', course:'芝2000m', time:'15:35', status:'done',
+        horses:[
+          {num:1,color:'bg-white', name:'チェルヴィニア',     detail:'牝3/55kg',jockey:'ルメール', odds:'3.0', score:88},
+          {num:2,color:'bg-black', name:'ラヴェル',           detail:'牝3/55kg',jockey:'川田将雅', odds:'4.5', score:76},
+          {num:3,color:'bg-red',   name:'エトワールノワール', detail:'牝3/55kg',jockey:'戸崎圭太', odds:'8.0', score:62},
+        ]},
+    ]
+  },
+
+  // ── 5/31(日) 日本ダービー（実際の結果） ──
+  '2026-5-31': {
+    venue: '東京',
+    races: [
+      { num:11, name:'日本ダービー（東京優駿）', grade:'G1', venue:'東京', course:'芝2400m', time:'15:40', status:'done',
+        result: { rank1:'ロブチェン', rank2:'パントルネイーフ', rank3:'パステール',
+                  odds1:'2.7', umaren:'13-17 2,290円', sanrentan:'5-13-17 47,050円' },
+        horses:[
+          {num:1, color:'bg-white',  name:'ロブチェン',        detail:'牡3/57kg',jockey:'松山弘平', odds:'2.7',  score:91},
+          {num:2, color:'bg-black',  name:'パントルネイーフ',  detail:'牡3/57kg',jockey:'ルメール', odds:'13.0', score:58},
+          {num:3, color:'bg-red',    name:'パステール',        detail:'牡3/57kg',jockey:'川田将雅', odds:'8.5',  score:67},
+          {num:4, color:'bg-blue',   name:'ゴーイントゥスカイ',detail:'牡3/57kg',jockey:'武豊',    odds:'15.0', score:55},
+          {num:5, color:'bg-yellow', name:'マテンロウダイル',  detail:'牡3/57kg',jockey:'横山和生', odds:'23.0', score:42},
+          {num:6, color:'bg-green2', name:'アルトラムス',      detail:'牡3/57kg',jockey:'横山武史', odds:'47.0', score:28},
+          {num:7, color:'bg-orange', name:'リアリズシリウス',  detail:'牡3/57kg',jockey:'津村明秀', odds:'52.0', score:22},
+          {num:8, color:'bg-pink',   name:'ライヒスアドラー',  detail:'牡3/57kg',jockey:'佐々木大輔',odds:'35.0', score:35},
+          {num:9, color:'bg-white',  name:'コンジェスタス',    detail:'牡3/57kg',jockey:'西村淳也', odds:'34.0', score:36},
+          {num:10,color:'bg-black',  name:'アスクエジンパラ',  detail:'牡3/57kg',jockey:'岩田康誠', odds:'62.0', score:18},
+          {num:11,color:'bg-red',    name:'アウダーシア',      detail:'牡3/57kg',jockey:'Dレーン', odds:'20.0', score:48},
+          {num:12,color:'bg-blue',   name:'フォルテアンジェロ',detail:'牡3/57kg',jockey:'荻野極',  odds:'45.0', score:25},
+          {num:13,color:'bg-yellow', name:'メイショウハチコウ',detail:'牡3/57kg',jockey:'Mディー', odds:'11.0', score:62},
+          {num:14,color:'bg-green2', name:'エムスビギン',      detail:'牡3/57kg',jockey:'Fゴンサルベス',odds:'51.0',score:20},
+          {num:15,color:'bg-orange', name:'ケントン',          detail:'牡3/57kg',jockey:'丹内祐次', odds:'66.0', score:15},
+          {num:16,color:'bg-pink',   name:'グリーンエナジー',  detail:'牡3/57kg',jockey:'戸崎圭太', odds:'61.0', score:16},
+          {num:17,color:'bg-white',  name:'ショウナンガルフ',  detail:'牡3/57kg',jockey:'浜中俊',  odds:'71.0', score:12},
+          {num:18,color:'bg-black',  name:'ジャスティンビスタ',detail:'牡3/57kg',jockey:'坂井瑠星',odds:'14.0', score:56},
+        ]},
+    ]
+  },
+
+  // ── 6/1(日) 鳴尾記念 ──
+  '2026-6-1': {
+    venue: '阪神',
+    races: [
+      { num:11, name:'鳴尾記念', grade:'G3', venue:'阪神', course:'芝2000m', time:'15:45', status:'upcoming',
+        horses:[
+          {num:1,color:'bg-white', name:'プログノーシス',     detail:'牡6/57kg',jockey:'川田将雅', odds:'2.8', score:88},
+          {num:2,color:'bg-black', name:'ベラジオオペラ',     detail:'牡5/57kg',jockey:'横山和生', odds:'4.5', score:74},
+          {num:3,color:'bg-red',   name:'ローシャムパーク',   detail:'牡6/57kg',jockey:'戸崎圭太', odds:'6.0', score:66},
+          {num:4,color:'bg-blue',  name:'ソールオリエンス',   detail:'牡5/57kg',jockey:'横山武史', odds:'5.5', score:70},
+        ]},
+    ]
+  },
+
+  // ── 6/7(日) 安田記念 ──
+  '2026-6-7': {
+    venue: '東京',
+    races: [
+      { num:11, name:'安田記念', grade:'G1', venue:'東京', course:'芝1600m', time:'15:40', status:'done',
+        result: { rank1:'シックスペンス', rank2:'ワールズエンド', rank3:'ガイアフォース',
+                  odds1:'2,160円', umaren:'4-14 2,430円 / 4-11 6,390円', sanrenpuku:'4-11-14 16,210円' },
+        horses:[
+          {num:1, color:'bg-white',  name:'レーベンスティール', detail:'牡6/58kg',jockey:'戸崎圭太', odds:'5.0',  score:82},
+          {num:2, color:'bg-black',  name:'ロングラン',         detail:'せん8/58kg',jockey:'F.ゴンサルベス',odds:'90.0',score:10},
+          {num:3, color:'bg-red',    name:'オフトレイル',       detail:'牡5/58kg',jockey:'菅原明良', odds:'8.0',  score:68},
+          {num:4, color:'bg-blue',   name:'シックスペンス',     detail:'牡5/58kg',jockey:'武豊',    odds:'12.0', score:72},
+          {num:5, color:'bg-yellow', name:'サクラトゥジュール', detail:'せん9/58kg',jockey:'佐々木大輔',odds:'80.0',score:12},
+          {num:6, color:'bg-green2', name:'ステレンボッシュ',   detail:'牝5/56kg',jockey:'D.レーン', odds:'7.0',  score:70},
+          {num:7, color:'bg-orange', name:'スズハローム',       detail:'牡6/58kg',jockey:'藤懸貴志', odds:'30.0', score:28},
+          {num:8, color:'bg-pink',   name:'シャンパンカラー',   detail:'牡6/58kg',jockey:'岩田康誠', odds:'20.0', score:38},
+          {num:9, color:'bg-white',  name:'ウォーターリヒト',   detail:'牡5/58kg',jockey:'高杉吏麒', odds:'15.0', score:45},
+          {num:10,color:'bg-black',  name:'ルクソールカフェ',   detail:'牡4/58kg',jockey:'岩田望来', odds:'22.0', score:35},
+          {num:11,color:'bg-red',    name:'ワールズエンド',     detail:'牡5/58kg',jockey:'津村明秀', odds:'9.0',  score:65},
+          {num:12,color:'bg-blue',   name:'シリウスコルト',     detail:'牡5/58kg',jockey:'横山和生', odds:'25.0', score:30},
+          {num:13,color:'bg-yellow', name:'セイウンハーデス',   detail:'牡7/58kg',jockey:'幸英明',  odds:'18.0', score:40},
+          {num:14,color:'bg-green2', name:'ガイアフォース',     detail:'牡7/58kg',jockey:'横山武史', odds:'6.0',  score:75},
+          {num:15,color:'bg-orange', name:'ドラゴンブースト',   detail:'牡4/58kg',jockey:'丹内祐次', odds:'10.0', score:60},
+          {num:16,color:'bg-pink',   name:'パンジャタワー',     detail:'牡4/58kg',jockey:'松山弘平', odds:'14.0', score:50},
+          {num:17,color:'bg-white',  name:'トロヴァトーレ',     detail:'牡5/58kg',jockey:'C.ルメール',odds:'3.5', score:85},
+        ]},
+    ]
+  },
+
+  // ── 6/8(日) マーメイドS ──
+  '2026-6-8': {
+    venue: '阪神',
+    races: [
+      { num:11, name:'マーメイドS', grade:'G3', venue:'阪神', course:'芝2000m', time:'15:35', status:'upcoming',
+        horses:[
+          {num:1,color:'bg-white', name:'ライラック',         detail:'牝6/56kg',jockey:'ルメール', odds:'3.8', score:82},
+          {num:2,color:'bg-black', name:'フィアスプライド',   detail:'牝6/55kg',jockey:'戸崎圭太', odds:'4.5', score:76},
+          {num:3,color:'bg-red',   name:'コンクシェル',       detail:'牝5/55kg',jockey:'川田将雅', odds:'5.5', score:70},
+        ]},
+    ]
+  },
+
+};
+
+// ── 日付キー生成ユーティリティ ──
+function dateKey(d) {
+  return d.getFullYear() + '-' + (d.getMonth()+1) + '-' + d.getDate();
+}
+
+// ── 現在の日付キー（初期表示用）──
+function todayKey() {
+  return dateKey(new Date());
+}
+
+// ── ステータスラベル ──
+function statusLabel(status) {
+  if (status === 'live')     return '<div class="race-status status-live">● LIVE</div>';
+  if (status === 'upcoming') return '<div class="race-status status-upcoming">出走前</div>';
+  return '<div class="race-status status-done">終了</div>';
+}
+
+// ══════════════════════════════════════
+//  レース描画エンジン
+// ══════════════════════════════════════
+function getPickLabel(rank) {
+  if (rank === 1) return '<span class="pick-badge pick-1">◎ 本命</span>';
+  if (rank === 2) return '<span class="pick-badge pick-2">○ 対抗</span>';
+  if (rank === 3) return '<span class="pick-badge pick-3">▲ 単穴</span>';
+  return '';
+}
+function getScoreClass(score) {
+  if (score >= 75) return 'score-high';
+  if (score >= 50) return 'score-mid';
+  return 'score-low';
+}
+
+// 出走馬テーブルのHTMLを生成
+function buildHorsesHTML(horses) {
+  const sorted = [...horses].sort((a,b) => b.score - a.score);
+  const rankMap = {};
+  sorted.forEach((h,i) => { rankMap[h.num] = i+1; });
+  return `<table class="horses-table">
+    <thead><tr><th>枠</th><th>馬名</th><th>騎手</th><th>単勝</th><th>AI予想</th><th>印</th></tr></thead>
+    <tbody>
+    ${horses.map(h => {
+      const rank = rankMap[h.num];
+      const scoreClass = getScoreClass(h.score);
+      const scoreColor = h.score>=75 ? '#f0cc6e' : h.score>=50 ? '#4caf50' : 'rgba(255,255,255,0.4)';
+      return `<tr>
+        <td><div class="horse-num ${h.color}">${h.num}</div></td>
+        <td><div class="horse-name">${h.name}</div><div class="horse-detail">${h.detail}</div></td>
+        <td style="font-size:0.8rem;color:rgba(253,246,227,0.7)">${h.jockey}</td>
+        <td><span class="odds">${h.odds}</span></td>
+        <td><div class="ai-score"><div class="score-bar-bg">
+          <div class="score-bar-fill ${scoreClass}" style="width:${h.score}%"></div>
+        </div><span class="score-num" style="color:${scoreColor}">${h.score}</span></div></td>
+        <td>${getPickLabel(rank)}</td>
+      </tr>`;
+    }).join('')}
+    </tbody></table>`;
+}
+
+// 日付に対応するレース一覧をレースセクションに描画
+function renderDateRaces(key) {
+  const section = document.querySelector('.races-section');
+  if (!section) return;
+
+  const dayData = raceDateDB[key];
+
+  if (!dayData || !dayData.races || dayData.races.length === 0) {
+    // データなし
+    const DAY_JA = ['日','月','火','水','木','金','土'];
+    const d = new Date(key.replace(/-/g, '/') + ' 00:00');
+    const label = `${d.getMonth()+1}/${d.getDate()}(${DAY_JA[d.getDay()]})`;
+    section.innerHTML = `
+      <h2>🏁 ${label} のレース一覧</h2>
+      <div style="text-align:center;padding:60px 20px;color:rgba(253,246,227,0.35)">
+        <div style="font-size:2.5rem;margin-bottom:16px">🏇</div>
+        <div style="font-size:0.9rem">この日のレースデータはまだ登録されていません</div>
+        <div style="font-size:0.78rem;margin-top:8px;color:rgba(253,246,227,0.25)">レース情報は開催前日〜当日に更新されます</div>
+      </div>`;
+    return;
+  }
+
+  const DAY_JA2 = ['日','月','火','水','木','金','土'];
+  const dd = new Date(key.replace(/-/g, '/') + ' 00:00');
+  const dlabel = `${dd.getMonth()+1}/${dd.getDate()}(${DAY_JA2[dd.getDay()]})`;
+
+  section.innerHTML = `<h2>🏁 ${dlabel} のレース一覧 <span style="font-size:0.78rem;color:rgba(253,246,227,0.4);font-family:'Noto Sans JP',sans-serif;font-weight:400">📍 ${dayData.venue}</span></h2>` +
+    dayData.races.map((race, idx) => `
+      <div class="race-card${idx===0?' expanded':''}" onclick="toggleRace(this)">
+        <div class="race-header">
+          <div class="race-num">${race.num}</div>
+          <div class="race-info">
+            <h3>${race.name} <span style="font-size:0.72rem;color:var(--gold);font-family:'Noto Sans JP',sans-serif;font-weight:400">${race.grade}</span></h3>
+            <div class="race-meta">
+              <span>📍 ${race.venue}</span>
+              <span>🏟 ${race.course}</span>
+              <span>⏰ ${race.time}</span>
+            </div>
+          </div>
+          ${statusLabel(race.status)}
+        </div>
+        <div class="horses">
+          ${idx===0 ? buildHorsesHTML(race.horses) : `<div style="text-align:center;padding:12px;font-size:0.78rem;color:rgba(253,246,227,0.35)">▼ クリックして出走馬を表示</div>`}
+        </div>
+      </div>`).join('');
+}
+
+// カード展開／折り畳み
+function toggleRace(card) {
+  const isExpanded = card.classList.contains('expanded');
+  // 全カード閉じる
+  document.querySelectorAll('.race-card').forEach(c => c.classList.remove('expanded'));
+
+  if (!isExpanded) {
+    card.classList.add('expanded');
+    const horsesDiv = card.querySelector('.horses');
+    if (!horsesDiv) return;
+
+    // loading表示中 or テーブルなし → 出走馬を描画
+    if (!horsesDiv.querySelector('table')) {
+      const raceNumEl = card.querySelector('.race-num');
+      const raceNum = raceNumEl ? parseInt(raceNumEl.textContent) : 0;
+      const activeBtn = document.querySelector('.date-btn.active');
+      if (!activeBtn) return;
+      const key = activeBtn.dataset.datekey;
+      const dayData = raceDateDB[key];
+      if (!dayData) return;
+      const race = dayData.races.find(r => r.num === raceNum);
+      if (race) {
+        horsesDiv.innerHTML = '<div class="loading"><div class="spinner"></div>AI分析中...</div>';
+        setTimeout(() => {
+          horsesDiv.innerHTML = buildHorsesHTML(race.horses);
+        }, 400);
+      }
+    }
+  }
+}
+
+// ══════════════════════════════════════
+//  初期化（raceDateDB定義後に実行）
+// ══════════════════════════════════════
+(function initAll() {
+  // 1) 日付バーを生成（raceDateDB参照）
+  buildDateBar();
+
+  // 2) 初期レース表示：今日のデータがあればそれを、なければ最近の日付
+  const today = new Date(); today.setHours(0,0,0,0);
+  const key = dateKey(today);
+
+  let useKey = key;
+  if (!raceDateDB[key]) {
+    const keys = Object.keys(raceDateDB).sort();
+    const nearest = keys.reduce((prev, cur) => {
+      const pd = Math.abs(new Date(prev.replace(/-/g,'/')) - today);
+      const cd = Math.abs(new Date(cur.replace(/-/g,'/'))  - today);
+      return cd < pd ? cur : prev;
+    });
+    useKey = nearest;
+  }
+
+  // 3) アクティブボタンをuseKeyに合わせる
+  const targetBtn = document.querySelector(`[data-datekey="${useKey}"]`);
+  if (targetBtn) {
+    document.querySelectorAll('.date-btn').forEach(b => b.classList.remove('active'));
+    targetBtn.classList.add('active');
+  }
+
+  // 4) レース描画
+  renderDateRaces(useKey);
+})();
+
+// === AI CHAT ===
+const aiResponses = {
+  '本命': '大阪杯G1の本命は**ドウデュース**（1番）です。AI予想スコア88点。昨年の有馬記念覇者で、阪神芝2000mの適性が高く、武豊騎手との相性も抜群です。馬場が良であれば前走の疲れも取れており、好走が期待できます。',
+  '対抗': '対抗は**プログノーシス**（3番）です。AI予想スコア81点。川田将雅騎手が手綱を取り、昨年の金鯱賞では圧勝。阪神コースでの実績も十分で、距離延長も問題ありません。',
+  '穴': '穴馬として**ローシャムパーク**（5番）が注目です。スコア74点。前走のコーナー4回コースでの強さを発揮する可能性があり、オッズ5.8倍はやや人気を集め始めています。',
+  '馬場': '本日の阪神は馬場状態「良」。含水率9.8%と理想的な状態です。芝のクッションが良く、先行馬有利の展開が予想されます。特に内枠有利の傾向が強い馬場です。',
+  '血統': 'ドウデュースは父ハーツクライ×母父キングカメハメハ。G1馬を多数輩出する黄金配合です。中距離の鬼であり、2000mはベスト距離と言えます。',
+  '買い方': '本命ドウデュース軸の馬単・馬連を推奨。1着固定で3→5→8番への馬単フォーメーションが高回収率が見込めます。三連複は◎-○-▲の本線で1-3-5番。',
+};
+
+function getAIResponse(input) {
+  for (const [key, val] of Object.entries(aiResponses)) {
+    if (input.includes(key)) return val;
+  }
+  return `「${input}」についてAIが分析中です。大阪杯G1では全18頭の過去レース成績・タイム・騎手相性・血統・馬場適性を総合的に分析しています。具体的に「本命」「対抗」「穴馬」「馬場」「買い方」などお聞きください。`;
+}
+
+function sendChat() {
+  const input = document.getElementById('chatInput');
+  const area = document.getElementById('chatArea');
+  const text = input.value.trim();
+  if (!text) return;
+
+  // User bubble
+  const userDiv = document.createElement('div');
+  userDiv.style.cssText = 'text-align:right; margin-bottom:8px;';
+  userDiv.innerHTML = `<span style="background:rgba(201,168,76,0.2);border:1px solid rgba(201,168,76,0.3);border-radius:8px 8px 2px 8px;padding:8px 12px;font-size:0.82rem;display:inline-block;max-width:80%;">${text}</span>`;
+  area.appendChild(userDiv);
+
+  input.value = '';
+  area.scrollTop = area.scrollHeight;
+
+  // Loading
+  const loadDiv = document.createElement('div');
+  loadDiv.className = 'ai-bubble';
+  loadDiv.innerHTML = '<div class="label">AI KEIBA</div><div class="loading" style="padding:4px 0"><div class="spinner"></div>分析中...</div>';
+  area.appendChild(loadDiv);
+  area.scrollTop = area.scrollHeight;
+
+  setTimeout(() => {
+    loadDiv.innerHTML = `<div class="label">AI KEIBA</div>${getAIResponse(text)}`;
+    area.scrollTop = area.scrollHeight;
+  }, 900 + Math.random() * 600);
+}
+
+// ══════════════════════════════════════
+//  ナビ ページ切り替え
+// ══════════════════════════════════════
+const PAGE_CONFIG = {
+  today:   { title:'今週のレース予想', desc:'AIが過去データ・血統・馬場状態を総合分析', badge:'🤖 AI POWERED PREDICTION' },
+  graded:  { title:'重賞情報',         desc:'今後のG1・G2・G3レース一覧',               badge:'🏆 GRADED RACE INFO' },
+  history: { title:'過去の成績',       desc:'AI予想の的中実績・月別集計',               badge:'📊 PAST RESULTS' },
+  howto:   { title:'使い方',           desc:'KEIBA AIの使い方ガイド',                   badge:'📖 HOW TO USE' },
+};
+
+function showPage(pageId) {
+  // ページエリアの表示切替
+  const today   = document.getElementById('pageToday');
+  const graded  = document.getElementById('pageGraded');
+  const history = document.getElementById('pageHistory');
+  const howto   = document.getElementById('pageHowto');
+  const dateBar = document.getElementById('dateBar');
+
+  [today, graded, history, howto].forEach(el => { if(el) el.style.display='none'; });
+  dateBar.style.display = pageId === 'today' ? '' : 'none';
+
+  const map = { today, graded, history, howto };
+  if (map[pageId]) map[pageId].style.display = '';
+
+  // ヒーロー更新
+  const cfg = PAGE_CONFIG[pageId] || PAGE_CONFIG.today;
+  document.getElementById('heroTitle').textContent = cfg.title;
+  document.getElementById('heroDesc').textContent  = cfg.desc;
+  document.getElementById('heroBadge').textContent = cfg.badge;
+
+  // ナビactive更新
+  document.querySelectorAll('.nav-link').forEach(a => {
+    a.classList.toggle('active', a.dataset.page === pageId);
+  });
+
+  // ページ固有の描画
+  if (pageId === 'graded')  renderGraded();
+  if (pageId === 'history') renderHistory();
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ナビクリックイベント
+document.querySelectorAll('.nav-link').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    showPage(a.dataset.page);
+  });
+});
+
+// ══ 重賞情報データ ══
+const gradedRaces = [
+  { date:'2026/04/19', name:'皐月賞',         grade:'G1', venue:'中山', course:'芝2000m', note:'クラシック第1弾' },
+  { date:'2026/04/26', name:'フローラS',       grade:'G2', venue:'東京', course:'芝2000m', note:'オークストライアル' },
+  { date:'2026/05/03', name:'天皇賞（春）',    grade:'G1', venue:'京都', course:'芝3200m', note:'長距離の頂点' },
+  { date:'2026/05/10', name:'NHKマイルC',      grade:'G1', venue:'東京', course:'芝1600m', note:'3歳マイル王決定戦' },
+  { date:'2026/05/17', name:'ヴィクトリアM',   grade:'G1', venue:'東京', course:'芝1600m', note:'牝馬マイル王決定戦' },
+  { date:'2026/05/24', name:'日本ダービー',    grade:'G1', venue:'東京', course:'芝2400m', note:'クラシック最高峰' },
+  { date:'2026/06/07', name:'安田記念',        grade:'G1', venue:'東京', course:'芝1600m', note:'マイル最強決定戦' },
+  { date:'2026/06/21', name:'宝塚記念',        grade:'G1', venue:'阪神', course:'芝2200m', note:'上半期グランプリ' },
+  { date:'2026/10/25', name:'菊花賞',          grade:'G1', venue:'京都', course:'芝3000m', note:'クラシック第3弾' },
+  { date:'2026/11/01', name:'天皇賞（秋）',    grade:'G1', venue:'東京', course:'芝2000m', note:'秋の盾' },
+  { date:'2026/11/22', name:'マイルCS',        grade:'G1', venue:'京都', course:'芝1600m', note:'秋のマイル王決定戦' },
+  { date:'2026/11/29', name:'ジャパンC',       grade:'G1', venue:'東京', course:'芝2400m', note:'国際G1' },
+  { date:'2026/12/27', name:'有馬記念',        grade:'G1', venue:'中山', course:'芝2500m', note:'グランプリ' },
+];
+
+function renderGraded() {
+  const el = document.getElementById('gradedList');
+  if (!el || el.dataset.rendered) return;
+  el.dataset.rendered = '1';
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const gradeColor = { G1:'#c9a84c', G2:'#aaaaaa', G3:'#888888' };
+
+  el.innerHTML = gradedRaces.map(r => {
+    const d = new Date(r.date.replace(/\//g,'-'));
+    const isPast = d < today;
+    const daysLeft = Math.ceil((d - today) / 86400000);
+    const daysLabel = isPast ? '終了' : daysLeft === 0 ? '本日' : `あと${daysLeft}日`;
+    const daysColor = isPast ? 'rgba(255,255,255,0.3)' : daysLeft <= 7 ? '#f0cc6e' : 'rgba(253,246,227,0.5)';
+
+    return `
+    <div style="background:linear-gradient(135deg,rgba(26,77,46,${isPast?'0.1':'0.25'}),rgba(13,26,15,0.6));
+      border:1px solid rgba(201,168,76,${isPast?'0.1':'0.25'});border-radius:8px;padding:16px 20px;
+      margin-bottom:12px;display:flex;align-items:center;gap:16px;opacity:${isPast?'0.5':'1'}">
+      <div style="min-width:90px;font-size:0.8rem;color:rgba(253,246,227,0.6)">${r.date}</div>
+      <div style="background:${gradeColor[r.grade]||'#666'};color:${r.grade==='G1'?'#0d1a0f':'white'};
+        font-family:'Bebas Neue',sans-serif;font-size:0.85rem;padding:2px 8px;border-radius:3px;min-width:30px;text-align:center">${r.grade}</div>
+      <div style="flex:1">
+        <div style="font-family:'Noto Serif JP',serif;font-weight:700;font-size:0.95rem">${r.name}</div>
+        <div style="font-size:0.75rem;color:rgba(253,246,227,0.5);margin-top:2px">📍${r.venue} / ${r.course} — ${r.note}</div>
+      </div>
+      <div style="font-size:0.78rem;font-weight:700;color:${daysColor};min-width:60px;text-align:right">${daysLabel}</div>
+    </div>`;
+  }).join('');
+}
+
+// ══ 過去の成績データ ══
+const historyData = [
+  { date:'2026/06/07', name:'安田記念',    grade:'G1', venue:'東京', honmei:'レーベンスティール', result1st:'シックスペンス', hit:false, odds:5.0 },
+  { date:'2026/05/31', name:'日本ダービー',grade:'G1', venue:'東京', honmei:'ロブチェン', result1st:'ロブチェン', hit:true,  odds:2.7 },
+  { date:'2026/04/18', name:'皐月賞',      grade:'G1', venue:'中山', honmei:'ジャスティンミラノ', result1st:'ジャスティンミラノ', hit:true,  odds:3.2 },
+  { date:'2026/04/04', name:'桜花賞',      grade:'G1', venue:'阪神', honmei:'ステレンボッシュ', result1st:'ステレンボッシュ', hit:true,  odds:2.5 },
+  { date:'2026/03/28', name:'大阪杯',      grade:'G1', venue:'阪神', honmei:'ドウデュース',   result1st:'ドウデュース',   hit:true,  odds:3.2 },
+  { date:'2026/03/28', name:'六甲S',       grade:'G3', venue:'阪神', honmei:'シュネルマイスター', result1st:'セリフォス', hit:false, odds:3.8 },
+  { date:'2026/03/29', name:'スプリングS', grade:'G2', venue:'中山', honmei:'ダノンエアズロック', result1st:'ダノンエアズロック', hit:true,  odds:3.1 },
+  { date:'2026/04/11', name:'アーリントンC',grade:'G3', venue:'阪神', honmei:'レガレイラ', result1st:'ダノンマッキンリー', hit:false, odds:3.5 },
+  { date:'2026/04/12', name:'アンタレスS', grade:'G3', venue:'阪神', honmei:'テーオーケインズ', result1st:'テーオーケインズ', hit:true,  odds:2.8 },
+];
+
+function renderHistory() {
+  const el = document.getElementById('historyTable');
+  const filterEl = document.getElementById('historyMonthFilter');
+  if (!el || el.dataset.rendered) return;
+  el.dataset.rendered = '1';
+
+  // 月フィルターボタン
+  const months = [...new Set(historyData.map(r => r.date.slice(0,7)))];
+  filterEl.innerHTML = `<button onclick="filterHistory('all')" style="background:var(--gold);color:#0d1a0f;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;font-size:0.8rem;font-weight:700">すべて</button>` +
+    months.map(m => `<button onclick="filterHistory('${m}')" style="background:rgba(26,77,46,0.4);border:1px solid rgba(201,168,76,0.3);color:rgba(253,246,227,0.7);padding:6px 14px;border-radius:4px;cursor:pointer;font-size:0.8rem">${m.replace('-','年')}月</button>`).join('');
+
+  // 成績サマリー
+  const total = historyData.length;
+  const hits  = historyData.filter(r => r.hit).length;
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px">
+      <div style="background:rgba(26,77,46,0.3);border:1px solid rgba(201,168,76,0.2);border-radius:8px;padding:16px;text-align:center">
+        <div style="font-size:0.75rem;color:rgba(253,246,227,0.5)">総レース数</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:#f0cc6e">${total}R</div>
+      </div>
+      <div style="background:rgba(26,77,46,0.3);border:1px solid rgba(201,168,76,0.2);border-radius:8px;padding:16px;text-align:center">
+        <div style="font-size:0.75rem;color:rgba(253,246,227,0.5)">本命的中</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:#4caf50">${hits}R</div>
+      </div>
+      <div style="background:rgba(26,77,46,0.3);border:1px solid rgba(201,168,76,0.2);border-radius:8px;padding:16px;text-align:center">
+        <div style="font-size:0.75rem;color:rgba(253,246,227,0.5)">的中率</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:#f0cc6e">${(hits/total*100).toFixed(0)}%</div>
+      </div>
+    </div>
+    <div id="historyRows"></div>`;
+
+  filterHistory('all');
+}
+
+function filterHistory(month) {
+  const rows = document.getElementById('historyRows');
+  if (!rows) return;
+  const filtered = month === 'all' ? historyData : historyData.filter(r => r.date.startsWith(month));
+  const gradeColor = { G1:'#c9a84c', G2:'#aaa', G3:'#888' };
+
+  rows.innerHTML = filtered.map(r => `
+    <div style="background:linear-gradient(135deg,rgba(26,77,46,0.2),rgba(13,26,15,0.5));
+      border:1px solid rgba(${r.hit?'76,175,80':'192,57,43'},0.3);border-radius:8px;
+      padding:14px 18px;margin-bottom:10px;display:flex;align-items:center;gap:14px">
+      <div style="font-size:0.75rem;color:rgba(253,246,227,0.5);min-width:80px">${r.date}</div>
+      <div style="background:${gradeColor[r.grade]||'#666'};color:${r.grade==='G1'?'#0d1a0f':'white'};
+        font-family:'Bebas Neue',sans-serif;font-size:0.82rem;padding:2px 7px;border-radius:3px">${r.grade}</div>
+      <div style="flex:1">
+        <div style="font-family:'Noto Serif JP',serif;font-weight:700;font-size:0.9rem">${r.name}
+          <span style="font-size:0.75rem;color:rgba(253,246,227,0.4);font-family:'Noto Sans JP',sans-serif"> ${r.venue}</span>
+        </div>
+        <div style="font-size:0.75rem;margin-top:3px;color:rgba(253,246,227,0.5)">
+          AI本命: <span style="color:#f0cc6e">${r.honmei}</span>　
+          1着: <span style="color:${r.hit?'#4caf50':'#e07070'}">${r.result1st}</span>
+        </div>
+      </div>
+      <div style="font-size:0.82rem;font-weight:700;padding:4px 12px;border-radius:4px;
+        background:${r.hit?'rgba(76,175,80,0.2)':'rgba(192,57,43,0.2)'};
+        color:${r.hit?'#4caf50':'#e07070'};border:1px solid ${r.hit?'#4caf50':'#e07070'}">
+        ${r.hit?'✅ 的中':'❌ 外れ'}
+      </div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:#f0cc6e;min-width:50px;text-align:right">${r.odds}倍</div>
+    </div>`).join('');
+}
+</script>
+</body>
+</html>
