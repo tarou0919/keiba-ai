@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ブログ | KEIBA AI</title>
+<meta name="description" content="AIと競馬予想サイトを作って運用している記録です。うまくいったことより、つまずいたことを中心に書いています。">
+<style>
+:root{
+  --turf:#0b1a10; --turf-2:#122417; --rail:#1f3826;
+  --gold:#d6b45c; --gold-dim:#8f7838;
+  --chalk:#e8e6df; --mute:#8d9a8f;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--turf);color:var(--chalk);
+  font-family:"Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif;
+  line-height:1.9;-webkit-text-size-adjust:100%}
+.wrap{max-width:760px;margin:0 auto;padding:0 clamp(14px,4vw,32px)}
+header{border-bottom:1px solid var(--rail);padding:18px 0}
+header a{color:var(--gold);text-decoration:none;font-weight:700;letter-spacing:.06em}
+header a span{font-size:.7rem;color:var(--mute);font-weight:400;margin-left:8px;letter-spacing:.15em}
+.head{padding:40px 0 24px;border-bottom:1px solid var(--rail)}
+.head time{font-size:.75rem;color:var(--mute);letter-spacing:.1em}
+.head h1{font-size:clamp(1.35rem,4.6vw,1.9rem);color:var(--gold);line-height:1.45;margin-top:8px}
+.tags{margin-top:12px;display:flex;gap:6px;flex-wrap:wrap}
+.tags span{font-size:.66rem;letter-spacing:.08em;padding:2px 8px;border:1px solid var(--gold-dim);color:var(--gold)}
+article{padding:28px 0 48px;font-size:.95rem}
+article p{margin:0 0 1.1em}
+article h2{font-size:1.15rem;color:var(--gold);margin:2.4em 0 .9em;padding-bottom:6px;border-bottom:1px solid var(--rail)}
+article h3{font-size:1rem;color:var(--chalk);margin:1.9em 0 .7em;padding-left:10px;border-left:3px solid var(--gold-dim)}
+article hr{display:none}
+article strong{color:#fff}
+article a{color:var(--gold);word-break:break-all}
+article ul,article ol{margin:0 0 1.2em 1.4em}
+article li{margin-bottom:.35em}
+article code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.85em;background:var(--turf-2);
+  border:1px solid var(--rail);padding:1px 5px;border-radius:3px}
+article pre{background:var(--turf-2);border:1px solid var(--rail);padding:12px 14px;overflow-x:auto;
+  margin:0 0 1.2em;font-size:.8rem;line-height:1.6}
+article pre code{background:none;border:0;padding:0}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 0 1.3em}
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+th{text-align:left;font-size:.72rem;color:var(--mute);font-weight:400;padding:8px 10px;border-bottom:1px solid var(--rail);white-space:nowrap}
+td{padding:8px 10px;border-bottom:1px solid rgba(31,56,38,.6);vertical-align:top}
+figure{margin:1.4em 0 1.6em}
+figure img{display:block;max-width:100%;height:auto;border:1px solid var(--rail)}
+figcaption{font-size:.75rem;color:var(--mute);margin-top:6px}
+footer{border-top:1px solid var(--rail);padding:24px 0 40px;font-size:.78rem;color:var(--mute)}
+footer a{color:var(--gold)}
+.list{padding:28px 0 48px}
+.post{display:block;text-decoration:none;color:inherit;padding:22px 0;border-bottom:1px solid var(--rail)}
+.post:first-child{border-top:1px solid var(--rail)}
+.post time{font-size:.72rem;color:var(--mute);letter-spacing:.1em}
+.post h2{font-size:1.05rem;color:var(--gold);line-height:1.5;margin:6px 0 8px;border:0;padding:0}
+.post p{font-size:.85rem;color:var(--chalk);margin:0;line-height:1.8}
+.post:hover h2{text-decoration:underline}
+.post .tags{margin-top:10px}
+</style>
+</head>
+<body>
+<header><div class="wrap"><a href="../">🏇 KEIBA AI<span>競馬AI予想システム</span></a></div></header>
+<div class="wrap">
+  <div class="head">
+    <h1>ブログ</h1>
+    <div class="tags"><span>運用記録</span></div>
+  </div>
+  <div class="list">
+    <a class="post" href="keiba-ai-3weeks-after.html">
+      <time datetime="2026-11-16">2026年11月16日</time>
+      <h2>負けた原因をAIと数字で切り分けた3週間 — 競馬予想サイト運用記その2</h2>
+      <p>3レースで2回外して1回当てました。大事だったのは収支ではなく、外れた原因を「買い方のせい」と「選び方のせい」に切り分けられたことです。</p>
+      <div class="tags"><span>AI活用</span><span>Python</span><span>競馬</span></div>
+    </a>
+    <a class="post" href="keiba-ai-3months.html">
+      <time datetime="2026-11-01">2026年11月1日</time>
+      <h2>プログラミング未経験でも、AIと競馬予想サイトを作って3か月運用できた話</h2>
+      <p>プログラミング未経験の会社員が、AIと一緒に競馬予想サイトを作り、3か月間とにかく運用し続けた記録です。うまくいったことより、つまずいたことのほうが多く書いてあります。</p>
+      <div class="tags"><span>AI活用</span><span>GitHub Pages</span><span>Python</span><span>競馬</span></div>
+    </a>
+  </div>
+  <footer><a href="../">← KEIBA AI トップへ戻る</a></footer>
+</div>
+</body>
+</html>
