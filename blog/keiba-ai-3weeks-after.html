@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>負けた原因をAIと数字で切り分けた3週間 — 競馬予想サイト運用記その2 | KEIBA AI</title>
+<meta name="description" content="前回の記事のあと、3レースで2回外して1回当てました。大事だったのは収支ではなく、外れた原因を「買い方のせい」と「選び方のせい」に切り分けられたことです。">
+<style>
+:root{
+  --turf:#0b1a10; --turf-2:#122417; --rail:#1f3826;
+  --gold:#d6b45c; --gold-dim:#8f7838;
+  --chalk:#e8e6df; --mute:#8d9a8f;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--turf);color:var(--chalk);
+  font-family:"Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif;
+  line-height:1.9;-webkit-text-size-adjust:100%}
+.wrap{max-width:760px;margin:0 auto;padding:0 clamp(14px,4vw,32px)}
+header{border-bottom:1px solid var(--rail);padding:18px 0}
+header a{color:var(--gold);text-decoration:none;font-weight:700;letter-spacing:.06em}
+header a span{font-size:.7rem;color:var(--mute);font-weight:400;margin-left:8px;letter-spacing:.15em}
+.head{padding:40px 0 24px;border-bottom:1px solid var(--rail)}
+.head time{font-size:.75rem;color:var(--mute);letter-spacing:.1em}
+.head h1{font-size:clamp(1.35rem,4.6vw,1.9rem);color:var(--gold);line-height:1.45;margin-top:8px}
+.tags{margin-top:12px;display:flex;gap:6px;flex-wrap:wrap}
+.tags span{font-size:.66rem;letter-spacing:.08em;padding:2px 8px;border:1px solid var(--gold-dim);color:var(--gold)}
+article{padding:28px 0 48px;font-size:.95rem}
+article p{margin:0 0 1.1em}
+article h2{font-size:1.15rem;color:var(--gold);margin:2.4em 0 .9em;padding-bottom:6px;border-bottom:1px solid var(--rail)}
+article h3{font-size:1rem;color:var(--chalk);margin:1.9em 0 .7em;padding-left:10px;border-left:3px solid var(--gold-dim)}
+article hr{display:none}
+article strong{color:#fff}
+article a{color:var(--gold);word-break:break-all}
+article ul,article ol{margin:0 0 1.2em 1.4em}
+article li{margin-bottom:.35em}
+article code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.85em;background:var(--turf-2);
+  border:1px solid var(--rail);padding:1px 5px;border-radius:3px}
+article pre{background:var(--turf-2);border:1px solid var(--rail);padding:12px 14px;overflow-x:auto;
+  margin:0 0 1.2em;font-size:.8rem;line-height:1.6}
+article pre code{background:none;border:0;padding:0}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 0 1.3em}
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+th{text-align:left;font-size:.72rem;color:var(--mute);font-weight:400;padding:8px 10px;border-bottom:1px solid var(--rail);white-space:nowrap}
+td{padding:8px 10px;border-bottom:1px solid rgba(31,56,38,.6);vertical-align:top}
+figure{margin:1.4em 0 1.6em}
+figure img{display:block;max-width:100%;height:auto;border:1px solid var(--rail)}
+figcaption{font-size:.75rem;color:var(--mute);margin-top:6px}
+footer{border-top:1px solid var(--rail);padding:24px 0 40px;font-size:.78rem;color:var(--mute)}
+footer a{color:var(--gold)}
+</style>
+</head>
+<body>
+<header><div class="wrap"><a href="../">🏇 KEIBA AI<span>競馬AI予想システム</span></a></div></header>
+<div class="wrap">
+  <div class="head">
+    <time datetime="2026-11-16">2026年11月16日</time>
+    <h1>負けた原因をAIと数字で切り分けた3週間 — 競馬予想サイト運用記その2</h1>
+    <div class="tags"><span>AI活用</span><span>GitHub Pages</span><span>Python</span><span>競馬</span></div>
+  </div>
+  <article>
+<p><a href="./keiba-ai-3months.html">前回の記事</a>の続きです。プログラミング未経験の会社員が、AIと作った競馬予想サイトを運用し続けている記録です。</p>
+<p>前回は「作った後に運用して初めて出てくる詰まり」を書きました。今回はその先、<strong>外れたときに原因をどう切り分けたか</strong>の話です。</p>
+<p>3週間で3レース。<strong>2回外して1回当てました。</strong> 収支はプラスですが、書く価値があるのはそこではありません。<strong>1回目で「何が悪かったのか」を数字で特定して、2回目でそれを試して全滅して、3回目で手がかりが出た。</strong> その流れを残します。</p>
+<hr />
+<h2>3週間の結果</h2>
+<div class="scroll"><table>
+<thead>
+<tr>
+<th>日付</th>
+<th>レース</th>
+<th>投資</th>
+<th>払戻</th>
+<th>結果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>11/1</td>
+<td>天皇賞(秋)</td>
+<td>600円</td>
+<td>0円</td>
+<td>✕</td>
+</tr>
+<tr>
+<td>11/8</td>
+<td>アルゼンチン共和国杯</td>
+<td>600円</td>
+<td>0円</td>
+<td>✕</td>
+</tr>
+<tr>
+<td>11/15</td>
+<td>エリザベス女王杯</td>
+<td>1,000円</td>
+<td>5,710円</td>
+<td>○</td>
+</tr>
+</tbody>
+</table></div>
+<p>通算はこう動きました。</p>
+<div class="scroll"><table>
+<thead>
+<tr>
+<th>項目</th>
+<th>前回の記事</th>
+<th>今回</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>消化レース</td>
+<td>30戦</td>
+<td><strong>33戦</strong></td>
+</tr>
+<tr>
+<td>的中</td>
+<td>6回</td>
+<td>7回</td>
+</tr>
+<tr>
+<td>損益</td>
+<td>+4,180円</td>
+<td><strong>+7,690円</strong></td>
+</tr>
+<tr>
+<td>回収率</td>
+<td>115.0%</td>
+<td><strong>125.5%</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>数字だけ見ると伸びていますが、中身は2敗1勝です。</strong> そして当たった1回も、あとで書くとおり<strong>自分の操作ミスを埋め合わせた馬券</strong>でした。</p>
+<hr />
+<h2>前提：いま何を試しているか</h2>
+<p>前回の記事の最後に「買い方を固定して20戦のデータを取る」と書きました。<strong>この表現は正確ではなかったので、サイトの記述もあわせて直しました。</strong></p>
+<p>固定すると決めたわけではありません。<strong>いま試している買い方のデータを、同じ条件で集めている</strong>という状態です。20戦たまった時点で、続けるか変えるかを判断します。</p>
+<p>試している買い方はこれです。</p>
+<div class="scroll"><table>
+<thead>
+<tr>
+<th>項目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>券種</td>
+<td>三連複</td>
+</tr>
+<tr>
+<td>方式</td>
+<td>軸2頭ながし</td>
+</tr>
+<tr>
+<td>軸</td>
+<td>アプリが出した ◎ と ○ の2頭</td>
+</tr>
+<tr>
+<td>相手</td>
+<td>6頭</td>
+</tr>
+<tr>
+<td>点数・金額</td>
+<td>6点 × 100円 = <strong>600円</strong></td>
+</tr>
+<tr>
+<td>頻度</td>
+<td>1開催につき1レースのみ</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>ここで一つ、構造を理解しておく必要があります。</strong> 軸2頭ながしは、<strong>軸に指定した2頭が両方とも3着以内に入らないと、絶対に当たりません。</strong> 相手6頭をどれだけ上手に選んでも、軸が1頭でも崩れたら終わりです。</p>
+<p>この点が、今回の3週間でずっと効いてきます。</p>
+<hr />
+<h2>1戦目：天皇賞(秋) — 外れた原因は2つあった</h2>
+<p>600円が0円になりました。三連複の配当は42,010円（84番人気）です。</p>
+<p><strong>軸にした1番人気が5着、2番人気が11着。</strong> 上位2頭がそろって崩れました。この時点で、相手が何であっても当たりません。</p>
+<p>ここでAIと一緒に、<strong>敗因を2つに分けました。</strong></p>
+<h3>原因①：買い方の構造（今回はこれで詰んでいた）</h3>
+<p>軸2頭が両方3着以内に入った回数を数え直しました。</p>
+<div class="scroll"><table>
+<thead>
+<tr>
+<th>戦</th>
+<th>レース</th>
+<th>軸の着順</th>
+<th>両方入着</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>府中牝馬S</td>
+<td>1着・3着</td>
+<td>○</td>
+</tr>
+<tr>
+<td>2</td>
+<td>秋華賞</td>
+<td>1着・3着</td>
+<td>○</td>
+</tr>
+<tr>
+<td>3</td>
+<td>菊花賞</td>
+<td>14着・3着</td>
+<td>✕</td>
+</tr>
+<tr>
+<td>4</td>
+<td>天皇賞(秋)</td>
+<td>5着・11着</td>
+<td>✕</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>2勝2敗。この数字が、この買い方の的中率の天井です。</strong></p>
+<p>相手選びが完璧でも、ここを超えられません。<strong>そこで「軸2頭そろって入着した回数」を、毎レース記録する指標として追加しました。</strong> 10戦たまった時点で、この買い方を続けるかを判断します。</p>
+<h3>原因②：相手6頭の選び方に、基準がなかった</h3>
+<p><strong>こちらが本当の反省点です。</strong></p>
+<p>私は「前哨戦でワンツーだった2頭が人気を落としている」という理由で相手を選びました。その3頭の着順は<strong>10着・14着・15着</strong>でした。</p>
+<p>一方、<strong>2着に来たのは8番人気の馬で、候補に挙げながら最終的に外した馬</strong>でした。</p>
+<p>あとでCSVを見直して、血の気が引きました。<strong>軸を除いた15頭を「3着内率」（過去のレースで3着以内に入った割合）で並べると、その8番人気が1位だったのです。</strong></p>
+<div class="scroll"><table>
+<thead>
+<tr>
+<th>順</th>
+<th>馬</th>
+<th>人気</th>
+<th>3着内率</th>
+<th>着順</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>落とした馬</td>
+<td>8番人気</td>
+<td>0.778</td>
+<td><strong>2着</strong></td>
+</tr>
+<tr>
+<td>2</td>
+<td>—</td>
+<td>12番人気</td>
+<td>0.778</td>
+<td>8着</td>
+</tr>
+<tr>
+<td>3</td>
+<td>勝った馬</td>
+<td>4番人気</td>
+<td>0.714</td>
+<td><strong>1着</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>3着内率は、自分で作ったCSVに最初から入っていました。</strong> 一度も見ずに、物語で選んでいました。</p>
+<hr />
+<h2>外した翌週にやったこと：選び方を文章にした</h2>
+<p>AIに試算してもらいました。「もし別の基準で6頭を選んでいたら、1〜3着を何頭カバーできていたか」です。</p>
+<div class="scroll"><table>
+<thead>
+<tr>
+<th>選び方</th>
+<th>1〜3着のカバー</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>実際に買った6頭（全部を判断で選んだ）</td>
+<td>2 / 3</td>
+</tr>
+<tr>
+<td>3着内率で機械的に上位6頭</td>
+<td>2 / 3</td>
+</tr>
+<tr>
+<td><strong>3着内率の上位3頭 ＋ 判断で3頭</strong></td>
+<td><strong>3 / 3</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>混ぜたときだけ、全部をカバーしました。</strong></p>
+<p>機械的に選ぶだけだと、3着に来た馬（3着内率は15頭中12位）が漏れます。判断だけだと、2着に来た馬（3着内率1位）を落とします。<strong>互いの穴を埋め合っていました。</strong></p>
+<p>そこで、相手6頭の選び方をこう決めて、文章にしました。</p>
+<div class="scroll"><table>
+<thead>
+<tr>
+<th>枠</th>
+<th>決め方</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>機械枠 3頭</strong></td>
+<td>軸を除いた全馬を3着内率の降順に並べ、上位3頭を<strong>無条件で</strong>選ぶ</td>
+</tr>
+<tr>
+<td><strong>裁量枠 3頭</strong></td>
+<td>コース適性、馬場状態との相性などから判断して選ぶ</td>
+</tr>
+<tr>
+<td>制約</td>
+<td>6頭のうち最低2頭は6番人気以下</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>一番大事なのは「機械枠を判断で差し替えてはいけない」という一行です。</strong> 天皇賞で落とした馬は、まさにそれをやった結果でした。</p>
+<hr />
+<h2>2戦目：アルゼンチン共和国杯 — 新ルール初戦で全滅</h2>
+<p>決めたルールを適用した最初のレースです。<strong>結果は、選んだ8頭から1頭も3着以内に入りませんでした。</strong></p>
+<p>1着が16番人気、2着が13番人気、3着が12番人気。<strong>三連複は1,635,170円（755番人気）</strong> でした。</p>
+<div class="scroll"><table>
+<thead>
+<tr>
+<th>枠</th>
+<th>着順</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>軸（アプリの◎○＝1・2番人気）</td>
+<td>10着・6着</td>
+</tr>
+<tr>
+<td>機械枠（3着内率で選定）</td>
+<td>7着・14着・18着</td>
+</tr>
+<tr>
+<td>裁量枠（判断で選定）</td>
+<td>8着・9着・13着</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>3着内率で選んでも、判断で選んでも届きませんでした。</strong> タイブレークで拾った10番人気は最下位です。</p>
+<p>ここで効いたのが、<strong>前の週に「1戦では良否を判断しない」と決めて書いておいたこと</strong>でした。</p>
+<p>決めていなかったら、たぶんまた買い方を変えていたと思います。前回の記事に書いたとおり、<strong>2か月で5つの買い方を渡り歩いて、どれも数戦で見切ってきた</strong>のが私のパターンだからです。</p>
+<p>AIに「別の買い方だったらどうだったか」を計算してもらいました。</p>
+<div class="scroll"><table>
+<thead>
+<tr>
+<th>買い方</th>
+<th>点数</th>
+<th>4戦の投資</th>
+<th>払戻</th>
+<th>損益</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>三連複 軸2頭ながし（現行）</strong></td>
+<td>6点</td>
+<td>2,400円</td>
+<td>5,620円</td>
+<td><strong>+3,220円</strong></td>
+</tr>
+<tr>
+<td>軸1頭ながし ＋ 相手6頭</td>
+<td>15点</td>
+<td>6,000円</td>
+<td>5,620円</td>
+<td>−380円</td>
+</tr>
+<tr>
+<td>8頭BOX</td>
+<td>56点</td>
+<td>22,400円</td>
+<td>14,200円</td>
+<td>−8,200円</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>BOXは菊花賞も当たっているのに、8,200円のマイナスです。</strong> 160万円の配当を見た直後は「広く買っていれば」と思いますが、広げたぶんのコストが配当を食い潰します。</p>
+<p><strong>乗り換える根拠がない、と数字が言っていたので、変えませんでした。</strong></p>
+<hr />
+<h2>3戦目：エリザベス女王杯 — 重馬場で、枠の差が出た</h2>
+<p>京都は雨で、芝は<strong>重馬場</strong>でした。</p>
+<p>ここで裁量枠の使い方を変えました。<strong>ルールに「馬場状態との相性」と書いてあるので、そこを使いました。</strong> 出馬表に載っている過去4走から、道悪（稍重・重・不良）での着順を全頭ぶん抜き出して、実績のある3頭を選びました。</p>
+<ul>
+<li>重馬場の2200m（今回と同じ距離）で3着、重1800mで1着の馬</li>
+<li>前走が京都の稍重2400mで3着の馬</li>
+<li>稍重1800mで1着の馬</li>
+</ul>
+<p><strong>物語ではなく、出馬表に書いてある着順です。</strong></p>
+<p>結果は<strong>的中。三連複5,710円。</strong> そして枠ごとに、はっきり差が出ました。</p>
+<div class="scroll"><table>
+<thead>
+<tr>
+<th>枠</th>
+<th>選んだ根拠</th>
+<th>着順</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>裁量枠</strong></td>
+<td><strong>道悪の実績</strong></td>
+<td><strong>3着・5着・6着</strong></td>
+</tr>
+<tr>
+<td>機械枠</td>
+<td>通算の3着内率</td>
+<td>9着・11着・16着</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>道悪で選んだ3頭が上位に固まり、3着内率で選んだ3頭は総崩れでした。</strong></p>
+<p>3着内率1位だった馬（0.727）は9着。17番人気で拾った馬（0.643）は16着です。</p>
+<p><strong>重馬場では、通算の3着内率より、直近の道悪実績のほうが効いた。</strong> ただし前週の良馬場では両枠に差がなかったので、<strong>2戦だけの観察です。結論にはしません。</strong> 「道悪のレースでは裁量枠に道悪実績を優先する」とだけ書き足しました。</p>
+<p>もう一つ、このレースで初めて起きたことがあります。<strong>アプリの ◎ が、1番人気でも2番人気でもない馬でした。</strong> それまで4戦続けて ◎○▲ が人気順の1〜3位と一致していたのが、崩れました。そしてその ◎ が1着に来ました。</p>
+<hr />
+<h2>ここからは、私のミスの話</h2>
+<p>当たった5,710円は、<strong>操作ミスを埋め合わせた馬券</strong>でした。</p>
+<h3>投票画面で、軸と相手を取り違えた</h3>
+<p>AIから受け取った指示はこうでした。</p>
+<pre><code>軸 に 7 15
+相手 に 4 6 10 11 12 16
+</code></pre>
+<p>私は<strong>相手の先頭にある「4」を、軸の欄にチェックしてしまいました。</strong> 軸が「7・15」ではなく「4・7」になった状態で購入完了。</p>
+<p>気づいたのは、購入画面をAIに送った直後です。画面に <code>04 － 07 － 6頭</code> と出ているのを見て指摘されました。<strong>4は17番人気の馬で、それが3着以内に入らないと当たらない馬券</strong>に変わっていました。</p>
+<p>JRAの馬券は取り消せません。<strong>残っていた400円で、本来買うはずだった組み合わせを4点買い直しました。</strong> そちらが当たりました。</p>
+<p>間違えた600円のほうは外れています。<strong>ちなみに、最初から正しく600円で買えていても当たっていました。</strong></p>
+<p>原因は指示の書き方だと思っています。<strong>相手の馬番を横一列で書いたので、先頭の数字が軸の列に吸い込まれた。</strong> 次からは軸と相手を離して書く、購入後に画面の馬番を読み合わせる、という手順にしました。</p>
+<h3>GitHubで、サイトのトップページを消した</h3>
+<p>別の日の話です。更新をコミットしたあと、<strong>Deployments の横に赤い✕が出ました。</strong> いつもは緑のチェックです。</p>
+<p>AIに相談したら「Actionsタブから再実行してみてください」と言われたのですが、<strong>私はそのとき別のことをしていて、<code>index.html</code> を削除していました。</strong> 上げ直すつもりでした。</p>
+<p>結果としては、削除 → 再アップロードで直りました。ただ、<strong>一時的にサイトのトップページが存在しない状態</strong>になっていたわけです。</p>
+<hr />
+<h2>AIが苦手だったこと</h2>
+<p>この一連で、はっきりしたことがあります。</p>
+<p><strong>AIは、ファイルとして読めるものには強いです。</strong> PDFから18頭を抜き出してCSVにする、収支を再計算する、HTMLのタグの対応と古い数字の残留を検証する。このあたりは、やれば必ず合います。実際、今回の3週間で数字の計算ミスはゼロでした。</p>
+<p><strong>弱いのは、状態が画面の中にあって、AIには伝聞でしか届かないところです。</strong></p>
+<p>GitHubの件がそれでした。10分のあいだにリポジトリの状態は3回変わっていて、AIが見られたのは私が送ったスクリーンショット数枚だけ。しかも公開ページを取得しに行くと、<strong>サーバーがキャッシュで古い中身を返してくる。</strong> 「壊れているのか、自分の情報が古いだけなのか」が区別できない。</p>
+<p>AIに指摘されて、なるほどと思った言い方があります。</p>
+<blockquote>
+<p>隣に座っていれば、消そうとした瞬間に「それじゃない」と言えたはずです。</p>
+</blockquote>
+<p><strong>手順を書く相手が、いま手順のどこにいるのか分からないまま書いている。</strong> それが、この種の作業でAIが外しやすい理由だと思います。</p>
+<p>逆に言えば、<strong>分担ははっきりしています。</strong> 計算と検証はAI、画面の前の判断は自分。</p>
+<hr />
+<h2>3週間でわかったこと</h2>
+<p><strong>外れた原因は、1つではなく2つに分かれる。</strong>
+「買い方のせい」と「選び方のせい」です。天皇賞はその両方が同時に起きていました。混ぜたままだと、どちらも直せません。</p>
+<p><strong>判断の基準は、先に文章にしておく。</strong>
+「3着内率の上位3頭は無条件で選ぶ」と書いてあれば、迷いません。書いていないと、前走の着順みたいな分かりやすい物語に流れます。私はそれで2着の馬を落としました。</p>
+<p><strong>「1戦では判断しない」も、先に書いておく。</strong>
+これがなかったら、160万円の配当を見た翌週に、たぶん6つ目の買い方に乗り換えていました。</p>
+<p><strong>記録していない数字は、後から使えない。</strong>
+「軸2頭そろって入着した回数」を数え始めたのは4戦目からです。もっと早く数えていれば、この買い方の天井にもっと早く気づけました。</p>
+<hr />
+<h2>数字の読み方</h2>
+<p><strong>33戦で回収率125.5%ですが、これは予想精度を示すものではありません。</strong></p>
+<p>プラス収支の大部分は、宝塚記念1回の的中（18,900円）で成立しています。検証中の買い方も6戦3的中で、まだ何も言える母数ではありません。<strong>統計的には運の範囲内</strong>としてお読みください。</p>
+<p>現在の検証は <strong>6 / 20戦</strong>です。20戦たまったら、続けるか変えるかを判断します。</p>
+<hr />
+<h2>最後に</h2>
+<p>このサイトは<strong>無料・非営利</strong>で運営しています。予想情報の有料販売は行っていません。JRAやnetkeibaなど外部サービスの画像・データの無断転載もしていません。</p>
+<p>馬券は20歳以上でないと購入できません。また、のめり込みに不安やお悩みがあれば、ひとりで抱えずに相談してください。JRAも案内している「<a href="https://www.koeikyogi.jp/addiction/gcc.html" target="_blank" rel="noopener">公営競技ギャンブル依存症カウンセリングセンター</a>」（<strong>0120-321-153</strong>・予約受付 平日9:00〜17:00）で相談できます。お住まいの地域の精神保健福祉センターなどでも相談でき、近くの窓口は依存症対策全国センターの「<a href="https://www.ncasa-japan.jp/you-do/treatment/treatment-map/" target="_blank" rel="noopener">お近くの専門相談窓口・専門医療機関を探す</a>」で探せます。</p>
+<p>余裕のある範囲で、記録を取りながら楽しむのが一番だと思います。</p>
+  </article>
+  <footer><a href="../">← KEIBA AI トップへ戻る</a></footer>
+</div>
+</body>
+</html>
